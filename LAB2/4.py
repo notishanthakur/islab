@@ -1,5 +1,5 @@
 from Crypto.Cipher import DES
-from Crypto.Util.Padding import pad, unpad
+from Crypto.Util.Padding import pad,unpad
 
 key=b"A1B2C3D4"
 iv=b"12345678"
