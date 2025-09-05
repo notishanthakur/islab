@@ -1,4 +1,4 @@
-def des(msg_des, key_des):
+def des_s(msg_des, key_des):
     def pkcs7_pad(b, bs):
         p = bs - (len(b) % bs or bs)
         return b + bytes([p]) * p
