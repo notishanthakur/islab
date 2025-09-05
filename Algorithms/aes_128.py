@@ -1,6 +1,6 @@
 from binascii import unhexlify
 
-def aes(msg_aes,key_aes):
+def aes_128(msg_aes,key_aes):
     def pkcs7_pad(b, bs):
         p = bs - (len(b) % bs or bs)
         return b + bytes([p]) * p
