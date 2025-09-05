@@ -1,9 +1,9 @@
-from Algorithms import aes, rsa_encrypt, rsa_decrypt
+from Algorithms import aes_128, rsa_encrypt, rsa_decrypt
 
 p,q,e,m=13,19,5,42
 key_aes = b"000000000000000000000000000000FF"
 d,n,ct,phi=rsa_encrypt(p,q,e,m)
-aes_ct, aes_pt = aes(str(ct).encode(),key_aes)
+aes_ct, aes_pt = aes_128(str(ct).encode(),key_aes)
 
 print("M: ", m)
 print("N: ", n)
