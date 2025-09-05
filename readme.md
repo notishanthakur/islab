@@ -1,7 +1,7 @@
 # IS LAB CODES
 ### To run codes via terminal
 `source securecorp-env/bin/activate`
-
+### Created a package named Algorithms for easy access
 ### Program Check Question
 <table>
     <td><b>Question</b></td>
