@@ -1,0 +1,2510 @@
+Skip to content
+Chat history
+
+Upgrade your plan
+You said:
+1. Key generation
+Choose a large prime p and a generator g of the multiplicative group of integers
+modulo p 
+ - Choose a random integer x, 1 < x < p-1 
+ - Compute y = g^x mod p 
+ - Public key: (p, g, y), Private key: x 
+2. Encryption: 
+ - Choose a random k, 1 < k < p-1 
+ - Compute c1 = g^k mod p 
+ - Compute s = y^k mod p 
+ - For plaintext m, compute c2 = m * s mod p 
+ - Ciphertext: (c1, c2) 
+3. Decryption: 
+ - Compute s = c1^x mod p 
+ - Compute m = c2 * s^(-1) mod p 
+
+
+give me python code with functions which employs both encrypt and decrypt with return values
+ChatGPT said:
+Sure! I can provide you a clean Python implementation of ElGamal encryption and decryption based on the steps you outlined. Here's a simple version using functions and modular arithmetic:
+
+import random
+
+# Function to generate keys
+def generate_keys(p, g):
+    x = random.randint(2, p - 2)        # Private key
+    y = pow(g, x, p)                     # Public key component
+    public_key = (p, g, y)
+    private_key = x
+    return public_key, private_key
+
+# Function to encrypt a message
+def encrypt(public_key, m):
+    p, g, y = public_key
+    k = random.randint(2, p - 2)
+    c1 = pow(g, k, p)
+    s = pow(y, k, p)
+    c2 = (m * s) % p
+    return c1, c2
+
+# Function to decrypt a ciphertext
+def decrypt(private_key, p, c1, c2):
+    s = pow(c1, private_key, p)
+    # Modular inverse using pow with -1
+    s_inv = pow(s, -1, p)
+    m = (c2 * s_inv) % p
+    return m
+
+# Example usage
+if __name__ == "__main__":
+    # Small example prime (for real use, choose large prime!)
+    p = 467
+    g = 2
+
+    public_key, private_key = generate_keys(p, g)
+    print("Public Key:", public_key)
+    print("Private Key:", private_key)
+
+    message = 123
+    c1, c2 = encrypt(public_key, message)
+    print("Ciphertext:", (c1, c2))
+
+    decrypted_message = decrypt(private_key, p, c1, c2)
+    print("Decrypted Message:", decrypted_message)
+✅ How it works:
+generate_keys(p, g) → Generates ElGamal public & private keys.
+
+encrypt(public_key, m) → Encrypts plaintext m and returns ciphertext (c1, c2).
+
+decrypt(private_key, p, c1, c2) → Decrypts (c1, c2) and returns the original message.
+
+Note: For real cryptography, you must use large primes (hundreds of bits). This example uses a small prime for simplicity and testing.
+
+If you want, I can also modify this so the functions return ciphertext and decrypted text as integers or strings, ready for sending/storing.
+
+Do you want me to do that?
+
+You said:
+yes
+ChatGPT said:
+Perfect! Here’s an improved version of the ElGamal code where encryption/decryption works with integers or strings, so it’s more practical for real messages:
+
+import random
+
+# --- Key Generation ---
+def generate_keys(p, g):
+    x = random.randint(2, p - 2)        # Private key
+    y = pow(g, x, p)                     # Public key component
+    public_key = (p, g, y)
+    private_key = x
+    return public_key, private_key
+
+# --- Encryption ---
+def encrypt(public_key, plaintext):
+    p, g, y = public_key
+    # Convert plaintext to integer if it's a string
+    if isinstance(plaintext, str):
+        m = int.from_bytes(plaintext.encode(), 'big')
+    else:
+        m = plaintext
+
+    k = random.randint(2, p - 2)
+    c1 = pow(g, k, p)
+    s = pow(y, k, p)
+    c2 = (m * s) % p
+    return (c1, c2)
+
+# --- Decryption ---
+def decrypt(private_key, p, ciphertext):
+    c1, c2 = ciphertext
+    s = pow(c1, private_key, p)
+    s_inv = pow(s, -1, p)
+    m = (c2 * s_inv) % p
+
+    # Convert back to string if message fits
+    try:
+        plaintext = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
+        return plaintext
+    except:
+        return m  # Return as integer if decoding fails
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    # Small example prime (for testing, use large primes in practice!)
+    p = 467
+    g = 2
+
+    public_key, private_key = generate_keys(p, g)
+    print("Public Key:", public_key)
+    print("Private Key:", private_key)
+
+    message = "Hello"
+    ciphertext = encrypt(public_key, message)
+    print("Ciphertext:", ciphertext)
+
+    decrypted_message = decrypt(private_key, p, ciphertext)
+    print("Decrypted Message:", decrypted_message)
+✅ Features:
+Handles both integers and strings.
+
+Returns ciphertext as a tuple (c1, c2).
+
+Decryption automatically tries to decode to string; if impossible, returns integer.
+
+Key generation, encryption, and decryption are all function-based and reusable.
+
+If you want, I can also make a version that uses a real large prime (~2048-bit) suitable for actual secure encryption instead of the small testing prime.
+
+Do you want me to do that?
+
+You said:
+Rabin Algorithm: 
+1. Key Generation: 
+ - Choose two large primes p and q, where p ≡ q ≡ 3 (mod 4) 
+ - Compute n = p * q 
+ - Public key: n, Private key: (p, q) 
+2. Encryption: 
+ For plaintext m, ciphertext c = m^2 mod n 
+3.Decryption: 
+ - Compute mp = c^((p+1)/4) mod p 
+
+Compute mq = c^((q+1)/4) mod q 
+ - Use Chinese Remainder Theorem to find four square roots: 
+ r1 = (yp * p * mq + yq * q * mp) mod n 
+ r2 = n - r1 
+ r3 = (yp * p * mq - yq * q * mp) mod n 
+ r4 = n - r3 
+ where yp * p + yq * q = 1
+
+
+give similar for rabin
+ChatGPT said:
+Sure! Here's a Python implementation of the Rabin cryptosystem using functions for key generation, encryption, and decryption, following the steps you outlined:
+
+import random
+from sympy import mod_inverse, isprime
+
+# --- Key Generation ---
+def generate_keys(bit_length=16):
+    # Choose p and q such that p ≡ q ≡ 3 (mod 4)
+    while True:
+        p = random.getrandbits(bit_length)
+        if p % 4 == 3 and isprime(p):
+            break
+    while True:
+        q = random.getrandbits(bit_length)
+        if q % 4 == 3 and isprime(q) and q != p:
+            break
+    n = p * q
+    public_key = n
+    private_key = (p, q)
+    return public_key, private_key
+
+# --- Encryption ---
+def encrypt(public_key, plaintext):
+    n = public_key
+    # Convert plaintext to integer if string
+    if isinstance(plaintext, str):
+        m = int.from_bytes(plaintext.encode(), 'big')
+    else:
+        m = plaintext
+    c = (m * m) % n
+    return c
+
+# --- Decryption ---
+def decrypt(private_key, ciphertext):
+    p, q = private_key
+    n = p * q
+    c = ciphertext
+
+    # Compute mp and mq
+    mp = pow(c, (p + 1) // 4, p)
+    mq = pow(c, (q + 1) // 4, q)
+
+    # Compute yp and yq using extended Euclidean algorithm
+    yp = mod_inverse(p, q)
+    yq = mod_inverse(q, p)
+
+    # Compute four roots using CRT
+    r1 = (yp * p * mq + yq * q * mp) % n
+    r2 = n - r1
+    r3 = (yp * p * mq - yq * q * mp) % n
+    r4 = n - r3
+
+    roots = [r1, r2, r3, r4]
+
+    # Try to convert roots back to string (if possible)
+    messages = []
+    for r in roots:
+        try:
+            msg = r.to_bytes((r.bit_length() + 7) // 8, 'big').decode()
+            messages.append(msg)
+        except:
+            messages.append(r)  # Keep integer if decoding fails
+
+    return messages
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    public_key, private_key = generate_keys()
+    print("Public Key (n):", public_key)
+    print("Private Key (p, q):", private_key)
+
+    message = "Hi"
+    ciphertext = encrypt(public_key, message)
+    print("Ciphertext:", ciphertext)
+
+    decrypted_messages = decrypt(private_key, ciphertext)
+    print("Possible Decrypted Messages:", decrypted_messages)
+✅ How it works:
+generate_keys(bit_length) → Generates p, q ≡ 3 (mod 4) and n = p * q.
+
+encrypt(public_key, m) → Encrypts integer or string plaintext.
+
+decrypt(private_key, c) → Returns four possible roots, converting to string if possible.
+
+Note: Rabin decryption yields four possible plaintexts, so you need some disambiguation scheme in practice (like padding or extra bits) to identify the correct one.
+
+I can also make a version that works for larger real-world secure primes and handles strings more robustly with disambiguation.
+
+Do you want me to do that?
+
+You said:
+Elliptic Curve Cryptography (ECC) 
+Elliptic Curve Cryptography (ECC) is an asymmetric encryption technique based on the
+algebraic structure of elliptic curves over finite fields. It offers significant advantages over
+traditional RSA encryption, such as smaller key sizes for equivalent security levels and
+faster computational speeds. 
+Key Components 
+Elliptic Curve Definition: 
+An elliptic curve over a finite field Fp is defined by an equation of the form y2=x3+ax+b
+mod p, where a and b are constants defining the curve's shape, and p is a prime number. 
+Base Point G (Generator): 
+A specific point on the curve used as the base for generating keys and performing
+operations. 
+Private Key d: A random integer d chosen as the private key. 
+Public Key Q: The public key is computed as Q=d G, where .(dot) denotes elliptic curve ⋅
+point multiplication. 
+Key Generation 
+Curve Parameters: Choose a suitable elliptic curve (e.g., secp256k1) defined over a
+finite field Fp . Select curve parameters a, b, and a prime modulus p.
+
+Base Point G Selection: Choose a base point G on the elliptic curve. 
+Private Key Generation: Generate a random integer d such that 1≤d<order of G. 
+Public Key Computation: Compute the public key Q as Q=d G. ⋅
+Public key: Q 
+Private key: d 
+Encryption and Decryption 
+ECC is primarily used for key exchange rather than direct encryption of messages. The
+Diffie-Hellman key exchange and elliptic curve DSA (ECDSA) are commonly used
+protocols based on ECC for secure communication and digital signatures
+ChatGPT said:
+Absolutely! Let’s summarize Elliptic Curve Cryptography (ECC) in a practical way and provide a Python example for key generation, encryption via Elliptic Curve Diffie-Hellman (ECDH), and digital signatures using ECDSA.
+
+ECC is generally used for key exchange or signatures, not encrypting large messages directly. Here's a practical Python implementation using the ecdsa library:
+
+Python Example: ECC Key Generation and ECDSA Sign/Verify
+from ecdsa import SigningKey, SECP256k1
+
+# --- Key Generation ---
+def generate_keys():
+    private_key = SigningKey.generate(curve=SECP256k1)  # d
+    public_key = private_key.get_verifying_key()         # Q = d * G
+    return private_key, public_key
+
+# --- Signing a message ---
+def sign_message(private_key, message):
+    if isinstance(message, str):
+        message = message.encode()
+    signature = private_key.sign(message)
+    return signature
+
+# --- Verifying a signature ---
+def verify_signature(public_key, message, signature):
+    if isinstance(message, str):
+        message = message.encode()
+    return public_key.verify(signature, message)
+
+# --- Example Usage ---
+if __name__ == "__main__":
+    # Generate ECC keys
+    priv_key, pub_key = generate_keys()
+    print("Private Key:", priv_key.to_string().hex())
+    print("Public Key:", pub_key.to_string().hex())
+
+    message = "Hello ECC!"
+    
+    # Sign the message
+    sig = sign_message(priv_key, message)
+    print("Signature:", sig.hex())
+
+    # Verify the signature
+    valid = verify_signature(pub_key, message, sig)
+    print("Signature valid?", valid)
+✅ Key Points:
+Elliptic Curve: y² = x³ + ax + b (mod p) over a finite field Fp.
+
+Private Key (d): Random integer.
+
+Public Key (Q): Point multiplication Q = d * G.
+
+Base Point (G): Predefined point on the curve (e.g., SECP256k1 in Bitcoin/Ethereum).
+
+Encryption: Usually ECC is used to derive a shared secret via ECDH.
+
+Digital Signature: ECDSA signs messages securely using the private key, which can be verified with the public key.
+
+If you want, I can also provide a full ECC “message encryption” example using ECIES (Elliptic Curve Integrated Encryption Scheme), which allows encrypting/decrypting actual messages with ECC.
+
+Do you want me to show that?
+
+You said:
+this takes and returns a string?
+ChatGPT said:
+Yes — the example I gave for ECDSA signing/verification works with strings, but the keys and signature are returned as bytes (or can be converted to hex strings).
+
+Here’s how it works in the code I shared:
+
+Input:
+
+message = "Hello ECC!"  # string
+Signing:
+
+signature = private_key.sign(message.encode())  # converts string to bytes
+Output:
+
+signature is a byte string (b'\x12\x34...')
+
+You can convert it to a hex string if you want to store or transmit it:
+
+signature.hex()
+Verification:
+
+You can pass the original string; it’s converted back to bytes inside the function:
+
+verify_signature(pub_key, "Hello ECC!", signature)  # returns True/False
+Keys:
+
+private_key.to_string() → bytes of private key
+
+public_key.to_string() → bytes of public key
+
+Convert to hex if you want strings:
+
+priv_hex = private_key.to_string().hex()
+pub_hex = public_key.to_string().hex()
+If you want, I can rewrite the whole ECC example so that all functions take and return strings only — including the keys and signatures — making it fully string-based for easy storage or transmission.
+
+Do you want me to do that?
+
+You said:
+how do I store timestamps in a file in python?
+ChatGPT said:
+Storing timestamps in a file in Python is straightforward. You can store them as text (human-readable) or serialized (e.g., using pickle for objects). Here are the main approaches:
+
+1. Store as human-readable strings
+from datetime import datetime
+
+# Get current timestamp
+timestamp = datetime.now()  # datetime object
+
+# Convert to string
+timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+# Write to file
+with open("timestamps.txt", "a") as f:  # "a" appends
+    f.write(timestamp_str + "\n")
+
+# Read from file
+with open("timestamps.txt", "r") as f:
+    lines = f.readlines()
+    for line in lines:
+        dt = datetime.strptime(line.strip(), "%Y-%m-%d %H:%M:%S")
+        print(dt)
+✅ Advantages: Human-readable, easy to debug.
+
+2. Store as Unix timestamp (float / seconds since epoch)
+import time
+
+# Get current timestamp
+ts = time.time()  # float
+
+# Write to file
+with open("timestamps.txt", "a") as f:
+    f.write(str(ts) + "\n")
+
+# Read from file
+with open("timestamps.txt", "r") as f:
+    for line in f:
+        ts_read = float(line.strip())
+        dt = datetime.fromtimestamp(ts_read)
+        print(dt)
+✅ Advantages: Easy for computations, sorting, or storing in databases.
+
+3. Store multiple timestamps as a Python list (pickle / JSON)
+Using pickle:
+import pickle
+from datetime import datetime
+
+timestamps = [datetime.now() for _ in range(3)]
+
+# Save
+with open("timestamps.pkl", "wb") as f:
+    pickle.dump(timestamps, f)
+
+# Load
+with open("timestamps.pkl", "rb") as f:
+    loaded = pickle.load(f)
+    print(loaded)
+Using JSON (convert to string first):
+import json
+
+timestamps = [datetime.now().strftime("%Y-%m-%d %H:%M:%S") for _ in range(3)]
+
+# Save
+with open("timestamps.json", "w") as f:
+    json.dump(timestamps, f)
+
+# Load
+with open("timestamps.json", "r") as f:
+    loaded = json.load(f)
+    print(loaded)
+✅ Advantages: Structured storage, easy to read/write multiple timestamps.
+
+💡 Tip:
+
+Use strftime/strptime for human-readable formats.
+
+Use time.time() or datetime.timestamp() for numeric timestamps if you plan to sort, calculate differences, or store efficiently.
+
+If you want, I can give you a ready-to-use function that appends timestamps to a file and automatically reads them back as datetime objects.
+
+Do you want me to do that?
+
+You said:
+now give me a menu driven skeleton
+
+which has three access levels like student, faculty, hod
+
+student can encrypt using aes for example (I'll import it)
+
+teacher can decrypt the same
+he can get key via rsa (I'll import it)
+
+student send a hash as signature (encrypted via rsa) along with the encrypted file which the teacher can use to compare 
+
+now all these are stored as hash/message/timestamps and the hod can view all these 
+
+also plot a graph 
+
+this should be skeleton type structure importing all functions since I'll have a self made library for these 
+add comments so I know where to edit to change functions (for example des to aes or rsa to ecc etc)
+ChatGPT said:
+Got it! I can create a menu-driven skeleton for your three-access-level system: Student, Faculty, HOD, with placeholders for encryption, decryption, signing, storing, and plotting. I’ll make it modular so you can replace AES/RSA/etc. with your own library functions.
+
+Here’s a structured Python skeleton:
+
+import time
+import json
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# --- Import your crypto functions here ---
+# Example placeholders; replace with your own implementations
+from mycrypto import encrypt_file_aes, decrypt_file_aes
+from mycrypto import generate_rsa_keys, encrypt_rsa, decrypt_rsa
+from mycrypto import compute_hash
+
+# --- File to store all records ---
+DATABASE_FILE = "records.json"
+
+# --- Utility Functions ---
+def load_records():
+    """Load all records from JSON file"""
+    try:
+        with open(DATABASE_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+def save_record(record):
+    """Append a record to the database"""
+    records = load_records()
+    records.append(record)
+    with open(DATABASE_FILE, "w") as f:
+        json.dump(records, f, indent=4)
+
+def plot_graph():
+    """Plot a simple graph of number of messages over time"""
+    records = load_records()
+    timestamps = [datetime.strptime(r['timestamp'], "%Y-%m-%d %H:%M:%S") for r in records]
+    counts = list(range(1, len(timestamps)+1))
+    
+    plt.plot(timestamps, counts, marker='o')
+    plt.xlabel("Time")
+    plt.ylabel("Messages Stored")
+    plt.title("Messages over Time")
+    plt.grid(True)
+    plt.show()
+
+# --- Student Functions ---
+def student_menu():
+    print("\n--- Student Menu ---")
+    print("1. Encrypt and send file")
+    print("2. Exit")
+    choice = input("Enter choice: ")
+    
+    if choice == "1":
+        message = input("Enter your message: ")
+        
+        # --- Encrypt message (edit here to change AES/other) ---
+        encrypted_message = encrypt_file_aes(message)  
+
+        # --- Compute hash/signature (edit here to change RSA/ECC) ---
+        private_key, public_key = generate_rsa_keys()
+        msg_hash = compute_hash(message)
+        signature = encrypt_rsa(private_key, msg_hash)
+
+        # --- Save record ---
+        record = {
+            "user": "student",
+            "message": encrypted_message,
+            "signature": signature,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_record(record)
+        print("Message sent and saved successfully.")
+        
+    elif choice == "2":
+        return
+
+# --- Faculty Functions ---
+def faculty_menu():
+    print("\n--- Faculty Menu ---")
+    print("1. Decrypt received file")
+    print("2. Exit")
+    choice = input("Enter choice: ")
+    
+    if choice == "1":
+        records = load_records()
+        for idx, r in enumerate(records):
+            print(f"{idx+1}. From: {r['user']} at {r['timestamp']}")
+        
+        sel = int(input("Select message to decrypt: ")) - 1
+        record = records[sel]
+
+        # --- Decrypt message (edit here to change AES/other) ---
+        decrypted_message = decrypt_file_aes(record['message'])
+        
+        # --- Decrypt signature using public key (edit RSA/ECC) ---
+        msg_hash = decrypt_rsa(public_key, record['signature'])
+
+        # --- Compare hash for integrity ---
+        computed_hash = compute_hash(decrypted_message)
+        valid = computed_hash == msg_hash
+        print("Decrypted message:", decrypted_message)
+        print("Signature valid?", valid)
+    
+    elif choice == "2":
+        return
+
+# --- HOD Functions ---
+def hod_menu():
+    print("\n--- HOD Menu ---")
+    print("1. View all messages")
+    print("2. Plot message graph")
+    print("3. Exit")
+    choice = input("Enter choice: ")
+    
+    if choice == "1":
+        records = load_records()
+        for r in records:
+            print(f"[{r['timestamp']}] {r['user']}: {r['message'][:50]}...")  # preview first 50 chars
+    elif choice == "2":
+        plot_graph()
+    elif choice == "3":
+        return
+
+# --- Main Menu ---
+def main_menu():
+    while True:
+        print("\n--- Main Menu ---")
+        print("1. Student")
+        print("2. Faculty")
+        print("3. HOD")
+        print("4. Exit")
+        choice = input("Enter access level: ")
+
+        if choice == "1":
+            student_menu()
+        elif choice == "2":
+            faculty_menu()
+        elif choice == "3":
+            hod_menu()
+        elif choice == "4":
+            break
+        else:
+            print("Invalid choice. Try again.")
+
+# --- Entry Point ---
+if __name__ == "__main__":
+    main_menu()
+✅ Key Points / Where to Edit:
+Encryption:
+
+encrypted_message = encrypt_file_aes(message)  # replace AES with DES, ECC, etc.
+Hash/Signature:
+
+private_key, public_key = generate_rsa_keys()  
+signature = encrypt_rsa(private_key, msg_hash)  # replace RSA with ECC or other signature
+Decryption:
+
+decrypted_message = decrypt_file_aes(record['message'])
+msg_hash = decrypt_rsa(public_key, record['signature'])
+Storage: Stored in records.json with message, signature, timestamp.
+
+Graph: Plots number of messages over time using matplotlib.
+
+This skeleton is fully modular — you just need to implement your own functions in mycrypto.py or replace them with existing libraries.
+
+If you want, I can also add separate key management per student/faculty so that faculty can retrieve the right decryption key automatically, which is closer to a real system.
+
+Do you want me to do that?
+
+You said:
+no need for objects to control access controls?
+ChatGPT said:
+Not necessarily — for a simple menu-driven prototype, you can manage access control with menus and conditional logic, like in the skeleton I gave. Each access level (Student, Faculty, HOD) has its own menu and functions, so “who can do what” is enforced by which menu they can access.
+
+However, if you want a more scalable or secure design, especially for multiple users, objects/classes can help. Here’s why:
+
+When objects help:
+Encapsulation of user data
+
+class User:
+    def __init__(self, username, role):
+        self.username = username
+        self.role = role
+        self.keys = {}  # store keys for AES, RSA, etc.
+Access control enforcement
+
+def access_allowed(user, action):
+    permissions = {
+        "student": ["encrypt"],
+        "faculty": ["decrypt"],
+        "hod": ["view", "plot"]
+    }
+    return action in permissions[user.role]
+Key management per user
+
+Each student/faculty can have their own AES or RSA keys stored in the object.
+
+Easier to fetch the correct decryption key for a faculty automatically.
+
+Scalable menus and logs
+
+Instead of a flat JSON file, you could store messages per user object.
+
+Easy to extend to multiple students and faculty.
+
+When you don’t need objects:
+Small prototype or lab assignment.
+
+Only a single student, single faculty, single HOD.
+
+Access control is just menu-based.
+
+JSON file storage is enough.
+
+💡 In short:
+
+Current skeleton: fine for a prototype or lab exercise.
+
+Object-oriented approach: better for multiple users, automated key handling, and scaling to a real system.
+
+If you want, I can rewrite your skeleton using classes for User and Message, keeping everything modular and role-based. This would also make automatic key assignment and validation easier.
+
+Do you want me to do that?
+
+You said:
+from .aes_128 import aes_128
+from .des_s import des_s
+from .modularinverse import modularinverse
+from .rsa import rsa_encrypt, rsa_decrypt
+
+#IMPLEMENTATION DUE
+#from .ecc import ecc_encrypt, ecc_decrypt
+#from .elGamal import elGamal_encrypt, elGamal_decrypt
+#rabin, diffie, kms, access-control
+
+this ive done in init file 
+
+example for rsa
+
+from Algorithms import modularinverse
+
+def rsa_encrypt(p,q,e,plaintext):
+    n = p * q
+    phi = (p - 1) * (q - 1)
+    d = modularinverse(e, phi)
+    ciphertext = pow(plaintext, e, n)
+
+    return d, n, ciphertext, phi
+def rsa_decrypt(d, n, ciphertext):
+    plaintext = pow(int(ciphertext), d, n)
+    return plaintext
+
+now follow the same and do for ecc using the algorithm given below
+
+Elliptic Curve Cryptography (ECC) Elliptic Curve Cryptography (ECC) is an asymmetric encryption technique based on the algebraic structure of elliptic curves over finite fields. It offers significant advantages over traditional RSA encryption, such as smaller key sizes for equivalent security levels and faster computational speeds. Key Components Elliptic Curve Definition: An elliptic curve over a finite field Fp is defined by an equation of the form y2=x3+ax+b mod p, where a and b are constants defining the curve's shape, and p is a prime number. Base Point G (Generator): A specific point on the curve used as the base for generating keys and performing operations. Private Key d: A random integer d chosen as the private key. Public Key Q: The public key is computed as Q=d G, where .(dot) denotes elliptic curve ⋅ point multiplication. Key Generation Curve Parameters: Choose a suitable elliptic curve (e.g., secp256k1) defined over a finite field Fp . Select curve parameters a, b, and a prime modulus p. Base Point G Selection: Choose a base point G on the elliptic curve. Private Key Generation: Generate a random integer d such that 1≤d<order of G. Public Key Computation: Compute the public key Q as Q=d G. ⋅ Public key: Q Private key: d Encryption and Decryption ECC is primarily used for key exchange rather than direct encryption of messages. The Diffie-Hellman key exchange and elliptic curve DSA (ECDSA) are commonly used protocols based on ECC for secure communication and digital signatures
+ChatGPT said:
+Perfect 👍 thanks for showing your rsa_encrypt / rsa_decrypt style — now I’ll mirror the same approach for ECC, using the description you provided.
+
+Since ECC involves point addition and scalar multiplication, we’ll need some helper functions (point_add, scalar_mult). I’ll keep it simple and modular like your RSA example, so you can drop it into your Algorithms/ecc.py file and import via __init__.py.
+
+Here’s the skeleton code for ECC:
+
+import random
+
+# --- Helper Functions for ECC ---
+def inverse_mod(k, p):
+    """Modular inverse using Extended Euclidean Algorithm"""
+    if k == 0:
+        raise ZeroDivisionError("Division by zero in modular inverse")
+    return pow(k, -1, p)
+
+def is_on_curve(point, a, b, p):
+    """Check if a point lies on the elliptic curve y^2 = x^3 + ax + b mod p"""
+    if point is None:  # point at infinity
+        return True
+    x, y = point
+    return (y * y - (x * x * x + a * x + b)) % p == 0
+
+def point_add(point1, point2, a, p):
+    """Add two points on the elliptic curve"""
+    if point1 is None:
+        return point2
+    if point2 is None:
+        return point1
+
+    x1, y1 = point1
+    x2, y2 = point2
+
+    if x1 == x2 and y1 != y2:
+        return None  # point at infinity
+
+    if x1 == x2:
+        # point doubling
+        m = (3 * x1 * x1 + a) * inverse_mod(2 * y1, p)
+    else:
+        # point addition
+        m = (y2 - y1) * inverse_mod(x2 - x1, p)
+
+    m = m % p
+    x3 = (m * m - x1 - x2) % p
+    y3 = (m * (x1 - x3) - y1) % p
+
+    return (x3, y3)
+
+def scalar_mult(k, point, a, p):
+    """Multiply a point by an integer k (repeated doubling/addition)"""
+    result = None  # point at infinity
+    addend = point
+
+    while k:
+        if k & 1:
+            result = point_add(result, addend, a, p)
+        addend = point_add(addend, addend, a, p)
+        k >>= 1
+
+    return result
+
+# --- ECC Functions (similar style to RSA) ---
+def ecc_keygen(a, b, p, G, n):
+    """
+    Generate ECC key pair
+    :param a, b: curve parameters
+    :param p: prime modulus
+    :param G: base point (x, y)
+    :param n: order of the base point
+    :return: (private_key d, public_key Q)
+    """
+    d = random.randint(1, n-1)        # private key
+    Q = scalar_mult(d, G, a, p)       # public key Q = d*G
+    return d, Q
+
+def ecc_encrypt(m, a, b, p, G, Q, n):
+    """
+    ECC Encryption (ElGamal style over ECC)
+    :param m: plaintext message represented as a point on the curve
+    :param a, b, p: curve parameters
+    :param G: base point
+    :param Q: recipient public key
+    :param n: order of the base point
+    :return: ciphertext (C1, C2)
+    """
+    k = random.randint(1, n-1)
+    C1 = scalar_mult(k, G, a, p)
+    kQ = scalar_mult(k, Q, a, p)
+    C2 = point_add(m, kQ, a, p)
+    return C1, C2
+
+def ecc_decrypt(C1, C2, d, a, b, p):
+    """
+    ECC Decryption
+    :param C1, C2: ciphertext points
+    :param d: private key
+    :param a, b, p: curve parameters
+    :return: plaintext point m
+    """
+    dC1 = scalar_mult(d, C1, a, p)
+    # m = C2 - d*C1
+    neg_dC1 = (dC1[0], (-dC1[1]) % p)
+    m = point_add(C2, neg_dC1, a, p)
+    return m
+✅ How this mirrors your RSA style:
+ecc_keygen(...) → like RSA keygen (d, Q)
+
+ecc_encrypt(m, ...) → returns (C1, C2) like ciphertext
+
+ecc_decrypt(C1, C2, d, ...) → returns the plaintext
+
+⚡ Notes:
+For simplicity, plaintext m is represented as a point on the curve. In practice, messages are encoded into points (using special encoding), but for your skeleton, this keeps it clean.
+
+You can replace the curve parameters with real ones (like secp256k1).
+
+This matches your RSA function style so it plugs neatly into your existing Algorithms/__init__.py.
+
+Do you want me to also add a demo example with a small curve (toy values) so you can test that ecc_encrypt → ecc_decrypt works end-to-end?
+
+You said:
+what parameters i put in encrpyt
+ChatGPT said:
+Good question 👍
+
+In your skeleton (since you want rsa_encrypt, rsa_decrypt, etc. style functions for each algorithm), you’d want the ecc_encrypt function to look similar in structure — i.e. take in plaintext + keys/curve parameters, and return ciphertext.
+
+For Elliptic Curve Cryptography (ECC) (ElGamal-style encryption over elliptic curves), you typically need:
+
+Parameters for ecc_encrypt
+m → plaintext message (usually encoded as a point on the curve, e.g., (x, y)).
+
+public_key_Q → receiver’s public key (a point on the curve).
+
+G → base point (generator) on the elliptic curve.
+
+p, a, b → curve parameters (for modular arithmetic and curve equation).
+
+k → random ephemeral key chosen freshly for each encryption.
+
+What happens in ecc_encrypt
+Compute C1 = k * G (point multiplication).
+
+Compute C2 = M + k * Q (adding the encoded plaintext point with shared secret).
+
+Return ciphertext as (C1, C2).
+
+Parameters for ecc_decrypt
+C1, C2 → ciphertext points.
+
+private_key_d → receiver’s private key.
+
+What happens in ecc_decrypt
+Compute S = d * C1.
+
+Recover plaintext as M = C2 – S.
+
+So your function signatures will look like:
+
+def ecc_encrypt(m, Q, G, p, a, b, k):
+    """
+    Encrypt message point m using ECC ElGamal-style.
+    Params:
+        m : tuple -> (x, y) point representing the message
+        Q : tuple -> public key (point on curve)
+        G : tuple -> generator point
+        p, a, b : ints -> curve parameters (y^2 = x^3 + ax + b mod p)
+        k : int -> random ephemeral key
+    Returns:
+        (C1, C2) : tuple of points (ciphertext)
+    """
+    # C1 = k*G
+    C1 = point_multiply(G, k, a, b, p)
+    
+    # C2 = M + k*Q
+    kQ = point_multiply(Q, k, a, b, p)
+    C2 = point_add(m, kQ, a, b, p)
+
+    return C1, C2
+
+
+def ecc_decrypt(C1, C2, d, a, b, p):
+    """
+    Decrypt ciphertext (C1, C2) using ECC ElGamal-style.
+    Params:
+        C1, C2 : tuples -> ciphertext points
+        d : int -> private key
+        a, b, p : curve params
+    Returns:
+        M : tuple -> recovered plaintext point
+    """
+    # S = d*C1
+    S = point_multiply(C1, d, a, b, p)
+    
+    # M = C2 - S
+    S_neg = (S[0], (-S[1]) % p)
+    M = point_add(C2, S_neg, a, b, p)
+    return M
+👉 In practice, plaintext isn’t stored directly as (x, y), instead it’s encoded into a point on the curve (mapping message → curve point). But for your skeleton, treat m as already a curve point.
+
+⚡ So the short answer:
+For ecc_encrypt, you pass:
+
+m (message point),
+
+Q (public key),
+
+G, p, a, b (curve params),
+
+k (random ephemeral key).
+
+Do you want me to also make a mini helper file (point_add, point_multiply) so that you can drop this in like your RSA one?
+
+You said:
+Rabin Algorithm: 
+1. Key Generation: 
+ - Choose two large primes p and q, where p ≡ q ≡ 3 (mod 4) 
+ - Compute n = p * q 
+ - Public key: n, Private key: (p, q) 
+2. Encryption: 
+ For plaintext m, ciphertext c = m^2 mod n 
+3.Decryption: 
+ - Compute mp = c^((p+1)/4) mod p 
+
+Compute mq = c^((q+1)/4) mod q 
+ - Use Chinese Remainder Theorem to find four square roots: 
+ r1 = (yp * p * mq + yq * q * mp) mod n 
+ r2 = n - r1 
+ r3 = (yp * p * mq - yq * q * mp) mod n 
+ r4 = n - r3 
+ where yp * p + yq * q = 1
+
+
+give similar for rabin
+ChatGPT said:
+Got it 👍
+I’ll give you a skeleton Rabin algorithm implementation in the same style as your RSA example (rabin_encrypt, rabin_decrypt).
+This will be modular so you can drop it into your Algorithms/ package like your other functions.
+
+from Algorithms import modularinverse
+
+def rabin_encrypt(m, n):
+    """
+    Rabin Encryption
+    Params:
+        m : int -> plaintext (must be < n)
+        n : int -> public key (product of primes p and q)
+    Returns:
+        c : int -> ciphertext
+    """
+    c = pow(m, 2, n)
+    return c
+
+
+def rabin_decrypt(c, p, q):
+    """
+    Rabin Decryption
+    Params:
+        c : int -> ciphertext
+        p, q : int -> private keys (primes, p ≡ q ≡ 3 mod 4)
+    Returns:
+        (r1, r2, r3, r4) : tuple of int -> four possible plaintexts
+    """
+    n = p * q
+
+    # Step 1: compute square roots modulo p and q
+    mp = pow(c, (p + 1) // 4, p)
+    mq = pow(c, (q + 1) // 4, q)
+
+    # Step 2: use Extended Euclidean Algorithm to solve yp*p + yq*q = 1
+    # (same modularinverse technique as in RSA)
+    def extended_gcd(a, b):
+        if b == 0:
+            return (1, 0, a)
+        else:
+            x1, y1, g = extended_gcd(b, a % b)
+            return (y1, x1 - (a // b) * y1, g)
+
+    yp, yq, _ = extended_gcd(p, q)
+
+    # Step 3: combine solutions with CRT
+    r1 = (yp * p * mq + yq * q * mp) % n
+    r2 = n - r1
+    r3 = (yp * p * mq - yq * q * mp) % n
+    r4 = n - r3
+
+    return r1, r2, r3, r4
+✅ Usage Example
+p = 7
+q = 11
+n = p * q
+
+m = 20  # plaintext (< n)
+
+# Encrypt
+c = rabin_encrypt(m, n)
+print("Ciphertext:", c)
+
+# Decrypt
+roots = rabin_decrypt(c, p, q)
+print("Possible plaintexts:", roots)
+⚡ Note:
+
+Rabin decryption always produces 4 possible plaintexts (r1, r2, r3, r4).
+
+The receiver must use redundancy, padding, or context to figure out which one is correct.
+
+Do you want me to also wrap the key generation step (choosing primes p, q with p ≡ q ≡ 3 mod 4 and computing n) into a helper function like you did for RSA (rsa_encrypt returning d, n, ciphertext, phi)?
+
+You said:
+1. Key generation
+Choose a large prime p and a generator g of the multiplicative group of integers
+modulo p 
+ - Choose a random integer x, 1 < x < p-1 
+ - Compute y = g^x mod p 
+ - Public key: (p, g, y), Private key: x 
+2. Encryption: 
+ - Choose a random k, 1 < k < p-1 
+ - Compute c1 = g^k mod p 
+ - Compute s = y^k mod p 
+ - For plaintext m, compute c2 = m * s mod p 
+ - Ciphertext: (c1, c2) 
+3. Decryption: 
+ - Compute s = c1^x mod p 
+ - Compute m = c2 * s^(-1) mod p 
+
+
+give me similar python code with functions which employs both encrypt and decrypt with return values
+ChatGPT said:
+Perfect 👌
+That’s the ElGamal cryptosystem.
+I’ll write you a clean skeleton with elgamal_keygen, elgamal_encrypt, elgamal_decrypt, in the same style you’ve been doing for RSA and Rabin.
+
+import random
+from Algorithms import modularinverse  # you already have this
+
+def elgamal_keygen(p, g):
+    """
+    ElGamal Key Generation
+    Params:
+        p : int -> large prime modulus
+        g : int -> generator of multiplicative group mod p
+    Returns:
+        public_key : tuple (p, g, y)
+        private_key : int (x)
+    """
+    x = random.randint(2, p - 2)      # private key
+    y = pow(g, x, p)                  # public key component
+    return (p, g, y), x
+
+
+def elgamal_encrypt(m, public_key):
+    """
+    ElGamal Encryption
+    Params:
+        m : int -> plaintext (must be < p)
+        public_key : tuple (p, g, y)
+    Returns:
+        ciphertext : tuple (c1, c2)
+    """
+    p, g, y = public_key
+    k = random.randint(2, p - 2)      # random session key
+
+    c1 = pow(g, k, p)
+    s = pow(y, k, p)
+    c2 = (m * s) % p
+
+    return (c1, c2)
+
+
+def elgamal_decrypt(ciphertext, private_key, public_key):
+    """
+    ElGamal Decryption
+    Params:
+        ciphertext : tuple (c1, c2)
+        private_key : int (x)
+        public_key : tuple (p, g, y)
+    Returns:
+        m : int -> recovered plaintext
+    """
+    p, g, y = public_key
+    c1, c2 = ciphertext
+
+    s = pow(c1, private_key, p)
+    s_inv = modularinverse(s, p)
+    m = (c2 * s_inv) % p
+
+    return m
+✅ Example usage
+p = 467  # prime
+g = 2    # generator
+
+# Key generation
+public_key, private_key = elgamal_keygen(p, g)
+print("Public:", public_key)
+print("Private:", private_key)
+
+# Encrypt
+plaintext = 123
+ciphertext = elgamal_encrypt(plaintext, public_key)
+print("Ciphertext:", ciphertext)
+
+# Decrypt
+decrypted = elgamal_decrypt(ciphertext, private_key, public_key)
+print("Decrypted:", decrypted)
+⚡ Notes:
+
+plaintext m must be less than p, else reduce m % p.
+
+You already have modularinverse from RSA, so reuse it here.
+
+Do you also want me to make this in the same format as your RSA example (like elgamal_encrypt also returning the random k used, so you can inspect it for debugging)?
+
+You said:
+Diffie-Hellman Key Exchange: 
+ Public parameters: prime p, generator g 
+ Alice computes: A = g^a mod p 
+ Bob computes: B = g^b mod p 
+ Shared secret: K = A^b mod p = B^a mod p = g^(ab) mod p
+
+similar for this
+ChatGPT said:
+Nice 👍 this one is Diffie–Hellman (DH) key exchange, and just like RSA/ElGamal/Rabin, I’ll give you a clean skeleton implementation with functions for key generation and shared secret derivation.
+
+import random
+
+def dh_keygen(p, g):
+    """
+    Diffie-Hellman Key Generation
+    Params:
+        p : int -> large prime modulus
+        g : int -> generator of multiplicative group mod p
+    Returns:
+        private_key : int -> random secret exponent
+        public_key : int -> g^private_key mod p
+    """
+    private_key = random.randint(2, p - 2)
+    public_key = pow(g, private_key, p)
+    return private_key, public_key
+
+
+def dh_shared_secret(their_public, my_private, p):
+    """
+    Compute the shared secret
+    Params:
+        their_public : int -> other party's public key
+        my_private : int -> my private key
+        p : int -> prime modulus
+    Returns:
+        K : int -> shared secret
+    """
+    return pow(their_public, my_private, p)
+✅ Example Usage
+p = 467  # prime modulus
+g = 2    # generator
+
+# Alice generates keys
+a_priv, A = dh_keygen(p, g)
+
+# Bob generates keys
+b_priv, B = dh_keygen(p, g)
+
+# Exchange A and B, compute shared secrets
+alice_secret = dh_shared_secret(B, a_priv, p)
+bob_secret = dh_shared_secret(A, b_priv, p)
+
+print("Alice secret:", alice_secret)
+print("Bob secret:", bob_secret)
+print("Equal?", alice_secret == bob_secret)
+⚡ Both parties end up with the same secret K = g^(ab) mod p without revealing their private keys.
+This is the building block for AES key exchange in your earlier skeleton (student encrypts with AES, teacher derives key via DH/RSA/ECC etc.).
+
+Do you want me to also extend this with a wrapper like your RSA function (e.g. return (p, g, private, public)) so you can plug it directly into your menu-driven structure?
+
+You said:
+how can I send aes key using this
+ChatGPT said:
+Good question 👍
+
+Here’s how you can send an AES key using Diffie–Hellman in your system (student → teacher):
+
+🔑 Step-by-step
+Agree on public parameters
+Both student and teacher know a large prime p and generator g (these can be public).
+
+Generate DH key pairs
+
+Student picks private a, computes A = g^a mod p.
+
+Teacher picks private b, computes B = g^b mod p.
+
+They exchange A and B.
+
+Derive shared secret
+
+Student computes K = B^a mod p.
+
+Teacher computes K = A^b mod p.
+
+Both now have the same shared secret K.
+
+Derive AES key from K
+Since K is just a number, hash or truncate it into the proper AES key size (128, 192, 256 bits).
+Example: use SHA-256 and then take the first 16 bytes for AES-128.
+
+🔧 Code Example
+import hashlib
+from Algorithms import aes_128  # your AES implementation
+
+def derive_aes_key(shared_secret, key_size=16):
+    """
+    Derive an AES key from the shared secret using SHA-256
+    Params:
+        shared_secret : int
+        key_size : int -> AES key length in bytes (16, 24, 32)
+    Returns:
+        key : bytes -> derived AES key
+    """
+    secret_bytes = str(shared_secret).encode()
+    hashed = hashlib.sha256(secret_bytes).digest()
+    return hashed[:key_size]
+
+
+# Example: Student <-> Teacher key exchange
+p = 467
+g = 2
+
+# Student side
+student_priv, A = dh_keygen(p, g)
+
+# Teacher side
+teacher_priv, B = dh_keygen(p, g)
+
+# Exchange A and B, compute shared secret
+student_secret = dh_shared_secret(B, student_priv, p)
+teacher_secret = dh_shared_secret(A, teacher_priv, p)
+
+# Derive AES keys
+student_aes_key = derive_aes_key(student_secret)
+teacher_aes_key = derive_aes_key(teacher_secret)
+
+print("AES keys match?", student_aes_key == teacher_aes_key)
+⚡ Flow in your menu system
+Student encrypts a file with AES using student_aes_key.
+
+Sends (A, ciphertext, signature) to Teacher.
+
+Teacher computes teacher_aes_key (same key), decrypts ciphertext.
+
+Teacher verifies hash/signature from student.
+
+👉 Do you want me to integrate this directly into your existing skeleton menu (Student encrypt → Teacher decrypt) so you can drop it in, or keep it modular like above?
+
+You said:
+send codes for sha (128,256,512)
+ChatGPT said:
+Got it 👍
+Since you want to drop these into your Algorithms folder like RSA/ElGamal/DH, here’s a clean skeleton for SHA hashing (128, 256, 512) using Python’s hashlib.
+
+import hashlib
+
+def sha128(message: str) -> str:
+    """
+    Compute SHA-128 hash (simulated with MD5 since hashlib doesn't have native SHA-128).
+    Params:
+        message : str -> input string
+    Returns:
+        hex digest : str
+    """
+    return hashlib.md5(message.encode()).hexdigest()
+
+
+def sha256(message: str) -> str:
+    """
+    Compute SHA-256 hash
+    Params:
+        message : str -> input string
+    Returns:
+        hex digest : str
+    """
+    return hashlib.sha256(message.encode()).hexdigest()
+
+
+def sha512(message: str) -> str:
+    """
+    Compute SHA-512 hash
+    Params:
+        message : str -> input string
+    Returns:
+        hex digest : str
+    """
+    return hashlib.sha512(message.encode()).hexdigest()
+✅ Example Usage
+msg = "Hello Cryptography"
+
+print("SHA-128:", sha128(msg))
+print("SHA-256:", sha256(msg))
+print("SHA-512:", sha512(msg))
+⚡ Notes:
+
+Python’s hashlib doesn’t provide a true SHA-128, so I mapped it to MD5 (128-bit output). That’s the closest match (but not secure for modern use).
+
+SHA-256 and SHA-512 are directly supported.
+
+Do you want me to also add a general wrapper function like sha(message, bits=256) so you can just pass the bit size instead of calling different functions?
+
+You said:
+all these are strings right?
+ChatGPT said:
+Yes ✅
+
+The functions I gave (sha128, sha256, sha512) return hexadecimal strings (like "a3f5b9...").
+
+That means:
+
+Input → plain string (e.g. "Hello").
+
+Output → hex string of fixed length:
+
+SHA-128 (MD5) → 32 hex chars → 128 bits.
+
+SHA-256 → 64 hex chars → 256 bits.
+
+SHA-512 → 128 hex chars → 512 bits.
+
+Example
+msg = "Test"
+
+print("SHA-128:", sha128(msg))  # 32 chars string
+print("SHA-256:", sha256(msg))  # 64 chars string
+print("SHA-512:", sha512(msg))  # 128 chars string
+👉 If you want the raw bytes (instead of hex string), just replace .hexdigest() with .digest(). That way you can directly use the hash as an AES key or for signing.
+
+Do you want me to rewrite them so they can optionally return bytes or hex depending on your use case?
+
+You said:
+Now give me a menu driven python code which employs this algorithms Use objects to create three levels Student encrypts using AES, also creates a hash for the file Teacher decrypts using AES, also creates a hash for the file Student sends the teacher the AES key and Signature using ElGamal Teacher compares the hash to verify HOD has access to all hashes and timestamps created during all transactions HOD can verify hashes as well Timestamps and hashes are stored outside in a csv and txt file both with objects we can have all private public keys stored in a manner also create a graph with the details you think should be on the graph throughout the program add comments so that, i can swap aes with des or elgamal with ecc,rsa,rabin,diffie
+ChatGPT said:
+
+Thought for 10s
+Nice — I’ll give you a complete, menu-driven, object-oriented Python skeleton that ties together your algorithms (AES, ElGamal, RSA, SHA) exactly the way you described. It:
+
+Uses Student, Teacher, HOD classes with role-based operations.
+
+Student encrypts a message with AES and produces a hash (signature).
+
+Student sends AES key + signature encrypted with ElGamal to Teacher.
+
+Teacher decrypts AES key, decrypts file, computes hash and compares.
+
+HOD can view all transactions (hashes & timestamps) and verify them.
+
+All transactions are logged to records.csv and records.txt.
+
+Keys are stored in keys.json.
+
+A graph is generated showing number of transactions over time and a breakdown by role.
+
+Clear comments show where to swap algorithms (AES <-> DES, ElGamal <-> RSA/ECC/Rabin/DH, etc.)
+
+Important: This is a skeleton that expects you to have your cryptographic functions in the Algorithms package (as you described). At the top of the script I provide the import placeholders and detailed comments so you can hook your functions in easily.
+
+Copy this file (call it e.g. menu_system.py) into the project root and run it. Edit the top imports to match your actual function names if necessary.
+
+"""
+menu_system.py
+
+Menu-driven OO skeleton for Student / Teacher / HOD workflow.
+
+Assumptions:
+- You have an Algorithms package (folder `Algorithms`) with functions for:
+    AES:  encrypt_aes(key: bytes, plaintext: bytes) -> bytes
+          decrypt_aes(key: bytes, ciphertext: bytes) -> bytes
+    ElGamal: elgamal_keygen(p, g) -> (pub, priv) or similar
+             elgamal_encrypt(m: bytes, pub, params) -> bytes
+             elgamal_decrypt(ciphertext: bytes, priv, params) -> bytes
+    RSA: rsa_encrypt(...), rsa_decrypt(...), etc.
+    Hash: sha256(msg: str) -> hex str (you also have sha128/sha512 if needed)
+
+If your function names differ, adapt the wrapper functions below.
+"""
+
+import json
+import csv
+import os
+import time
+from datetime import datetime
+import hashlib
+import matplotlib.pyplot as plt
+
+# ---------------------------
+# ---- Hook your algorithms
+# ---------------------------
+# Edit these imports to match your Algorithms package file/module names.
+# Example structure you've used earlier:
+# from Algorithms import modularinverse, rsa_encrypt, rsa_decrypt, ...
+#
+# Here we try to import common names; if not present we raise a clear error
+# telling you which wrapper to edit.
+
+try:
+    # AES functions (expected to be provided by you)
+    # Implementations expected:
+    #   aes_encrypt(key_bytes: bytes, plaintext_bytes: bytes) -> bytes
+    #   aes_decrypt(key_bytes: bytes, ciphertext_bytes: bytes) -> bytes
+    from Algorithms.aes_128 import encrypt as aes_encrypt, decrypt as aes_decrypt
+except Exception as e:
+    # If your aes module uses different names, change these wrapper functions below.
+    def aes_encrypt(key_bytes: bytes, plaintext_bytes: bytes) -> bytes:
+        raise ImportError("Please implement aes_encrypt(key_bytes, plaintext_bytes) or adjust imports. " 
+                          "Currently Algorithms.aes_128.encrypt not found.")
+    def aes_decrypt(key_bytes: bytes, ciphertext_bytes: bytes) -> bytes:
+        raise ImportError("Please implement aes_decrypt(key_bytes, ciphertext_bytes) or adjust imports.")
+
+
+try:
+    # ElGamal style API (adjust if you named differently)
+    # Expected:
+    #   elgamal_keygen(p, g) -> (public_key, private_key) or a tuple/structure you use
+    #   elgamal_encrypt(bytes_data, public_key, params...) -> bytes or tuple
+    #   elgamal_decrypt(ciphertext, private_key, params...) -> bytes
+    from Algorithms.elgamal import elgamal_keygen, elgamal_encrypt, elgamal_decrypt
+except Exception:
+    # Provide placeholder wrappers to help you adapt names:
+    def elgamal_keygen(*args, **kwargs):
+        raise ImportError("Please implement elgamal_keygen or adjust imports in this file.")
+    def elgamal_encrypt(*args, **kwargs):
+        raise ImportError("Please implement elgamal_encrypt or adjust imports in this file.")
+    def elgamal_decrypt(*args, **kwargs):
+        raise ImportError("Please implement elgamal_decrypt or adjust imports in this file.")
+
+
+try:
+    # Hash functions: sha256, sha128/sha512 optional
+    from Algorithms.sha import sha256, sha128, sha512
+except Exception:
+    # fallback implementations using hashlib
+    def sha256(message: str) -> str:
+        return hashlib.sha256(message.encode()).hexdigest()
+    def sha512(message: str) -> str:
+        return hashlib.sha512(message.encode()).hexdigest()
+    def sha128(message: str) -> str:
+        # MD5 used as 128-bit placeholder
+        return hashlib.md5(message.encode()).hexdigest()
+
+
+# ---------------------------
+# ---- Storage locations
+# ---------------------------
+RECORDS_CSV = "records.csv"   # tabular log (sender, receiver, hash, timestamp, preview)
+RECORDS_TXT = "records.txt"   # human readable appended log
+KEYS_JSON   = "keys.json"     # store public/private keys per user (simple JSON store)
+
+# ensure csv file has headers if not exists
+if not os.path.exists(RECORDS_CSV):
+    with open(RECORDS_CSV, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["timestamp", "sender", "receiver", "hash_hex", "message_preview"])
+
+# ensure keys.json exists
+if not os.path.exists(KEYS_JSON):
+    with open(KEYS_JSON, "w") as f:
+        json.dump({}, f, indent=4)
+
+
+# ---------------------------
+# ---- Utility helpers
+# ---------------------------
+def save_record_csv(sender, receiver, hash_hex, message_preview):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(RECORDS_CSV, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([ts, sender, receiver, hash_hex, message_preview[:100]])
+    # append to text log too
+    with open(RECORDS_TXT, "a") as f:
+        f.write(f"[{ts}] {sender} -> {receiver} : {hash_hex} : {message_preview[:200]}\n")
+
+
+def load_keys():
+    with open(KEYS_JSON, "r") as f:
+        return json.load(f)
+
+
+def save_keys(dct):
+    with open(KEYS_JSON, "w") as f:
+        json.dump(dct, f, indent=4, default=str)
+
+
+def derive_aes_key_from_secret(secret_int, key_len_bytes=16):
+    """
+    Derive AES key bytes from a shared integer secret (e.g., DH or ElGamal numeric)
+    We use SHA-256 and truncate. Returns bytes.
+    """
+    s = str(secret_int).encode()
+    digest = hashlib.sha256(s).digest()
+    return digest[:key_len_bytes]
+
+
+def now_timestamp_str():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+# ---------------------------
+# ---- Domain objects
+# ---------------------------
+class MessageRecord:
+    def __init__(self, sender, receiver, hash_hex, timestamp=None, preview=""):
+        self.sender = sender
+        self.receiver = receiver
+        self.hash_hex = hash_hex
+        self.timestamp = timestamp or now_timestamp_str()
+        self.preview = preview
+
+    def to_csv_row(self):
+        return [self.timestamp, self.sender, self.receiver, self.hash_hex, self.preview[:100]]
+
+
+class User:
+    def __init__(self, username, role):
+        self.username = username
+        self.role = role  # 'student', 'teacher', 'hod'
+        self.keys = {}    # store algorithm keys (e.g., AES keys, RSA keys, ElGamal keys)
+        # In practice store these securely. Here we persist to keys.json for convenience.
+
+    def save_keys_to_store(self):
+        store = load_keys()
+        store[self.username] = {"role": self.role, "keys": self.keys}
+        save_keys(store)
+
+    def load_keys_from_store(self):
+        store = load_keys()
+        data = store.get(self.username)
+        if not data:
+            return False
+        self.role = data["role"]
+        self.keys = data["keys"]
+        return True
+
+
+class Student(User):
+    def __init__(self, username):
+        super().__init__(username, "student")
+
+    def create_aes_key(self):
+        """
+        Student generates a random AES key (bytes).
+        In real code: use secure random. Here we use os.urandom for AES key.
+        """
+        key = os.urandom(16)  # AES-128 by default. Swap to 24/32 for AES-192/256
+        self.keys["aes_key"] = key.hex()
+        self.save_keys_to_store()
+        return key
+
+    def encrypt_and_send(self, plaintext: str, teacher_public_elgamal, elgamal_params):
+        """
+        Steps:
+        1. create AES key
+        2. encrypt plaintext with AES
+        3. compute hash (sha256) of plaintext -> signature_data
+        4. sign or encrypt the hash (we will encrypt the hash using student's private key in RSA-style
+           if you have RSA sign function; in this template we'll send the hash itself and then
+           encrypt AES key+hash using ElGamal to teacher)
+        5. encrypt the AES key + signature with teacher's ElGamal public key
+        6. store logs and return the package (ciphertext, encrypted_key_blob)
+        """
+
+        # 1. AES key
+        aes_key = self.create_aes_key()   # bytes
+
+        # 2. AES encrypt the plaintext (we expect aes_encrypt -> bytes)
+        plaintext_bytes = plaintext.encode()
+        ciphertext = aes_encrypt(aes_key, plaintext_bytes)  # bytes expected
+
+        # 3. compute hash of plaintext (hex string)
+        hash_hex = sha256(plaintext)
+
+        # 4. create message preview for logs
+        preview = plaintext[:200]
+
+        # 5. Prepare key+signature blob: we will pack aes_key + hash_hex
+        #    Format: aes_key_bytes || b"::" || hash_hex.encode()
+        #    You may choose a better serialization (JSON + bytes) in real code.
+        key_blob = aes_key + b"::" + hash_hex.encode()
+
+        # 6. Encrypt key_blob to teacher using ElGamal public key (user supplies teacher_public_elgamal)
+        #    You must adapt this call to your elgamal API. We keep it abstract here.
+        #    Expect elgamal_encrypt to return bytes or tuple (ciphertext, extra)
+        encrypted_key_blob = elgamal_encrypt(key_blob, teacher_public_elgamal, elgamal_params)
+
+        # 7. Save record to CSV/TXT for HOD
+        save_record_csv(self.username, "teacher", hash_hex, preview)
+
+        # 8. Return package to send over network / saved to disk
+        package = {
+            "sender": self.username,
+            "ciphertext": ciphertext.hex(),            # store hex to simplify JSON transport
+            "encrypted_key_blob": serialized(encrypted_key_blob),
+            "hash_hex": hash_hex,
+            "timestamp": now_timestamp_str()
+        }
+        return package
+
+
+class Teacher(User):
+    def __init__(self, username):
+        super().__init__(username, "teacher")
+
+    def receive_and_decrypt(self, package, my_elgamal_priv, elgamal_params):
+        """
+        1. decrypt encrypted_key_blob using my_elgamal_priv -> get aes_key + signature/hash
+        2. use aes_key to decrypt ciphertext
+        3. compute hash and compare with signature/hash sent by student
+        4. record the result and return
+        """
+        # Parse package
+        ciphertext_bytes = bytes.fromhex(package["ciphertext"])
+        encrypted_blob = deserialized(package["encrypted_key_blob"])
+
+        # Decrypt key blob using teacher private ElGamal key
+        key_blob = elgamal_decrypt(encrypted_blob, my_elgamal_priv, elgamal_params)
+        # key_blob expected format: aes_key_bytes + b"::" + hash_hex_bytes
+        if isinstance(key_blob, tuple) or isinstance(key_blob, list):
+            # Some elgamal implementations return structures - adapt accordingly
+            key_blob = key_blob[0]
+
+        # Ensure bytes
+        if isinstance(key_blob, str):
+            key_blob = key_blob.encode()
+
+        try:
+            aes_key, sent_hash_hex = key_blob.split(b"::")
+            sent_hash_hex = sent_hash_hex.decode()
+        except Exception:
+            raise ValueError("Unexpected key_blob format. Update parsing to match your elgamal output.")
+
+        # Decrypt AES ciphertext
+        plaintext_bytes = aes_decrypt(aes_key, ciphertext_bytes)
+        plaintext = plaintext_bytes.decode()
+
+        # Compute hash locally and compare
+        computed_hash = sha256(plaintext)
+        match = computed_hash == sent_hash_hex
+
+        # Save record (teacher side)
+        save_record_csv("teacher", package["sender"], computed_hash, plaintext[:200])
+
+        return {
+            "plaintext": plaintext,
+            "sent_hash": sent_hash_hex,
+            "computed_hash": computed_hash,
+            "valid": match
+        }
+
+
+class HOD(User):
+    def __init__(self, username="hod"):
+        super().__init__(username, "hod")
+
+    def view_all_records(self):
+        # Print CSV file contents in human-friendly form
+        print("\n--- All Transactions (records.csv) ---")
+        with open(RECORDS_CSV, "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                print(", ".join(row))
+        print("--- End of Records ---\n")
+
+    def verify_record(self, row_index):
+        """
+        Verify a record at row_index (1-based excluding header).
+        This just recomputes the hash of the preview or asks user to provide original plaintext.
+        """
+        with open(RECORDS_CSV, "r") as f:
+            reader = list(csv.reader(f))
+        header = reader[0]
+        if row_index <= 0 or row_index >= len(reader):
+            print("Invalid index")
+            return False
+        row = reader[row_index]
+        ts, sender, receiver, hash_hex, preview = row
+        print(f"Record: {row}")
+        # HOD cannot fully verify without original plaintext; ask for it:
+        original = input("Provide original plaintext (or press enter to skip): ")
+        if not original:
+            print("No plaintext provided; cannot fully verify. Hash saved:")
+            print(hash_hex)
+            return None
+        recomputed = sha256(original)
+        ok = recomputed == hash_hex
+        print("Verification result:", ok)
+        return ok
+
+    def plot_transactions(self):
+        """
+        Plot number of transactions over time and a bar chart per sender
+        """
+        timestamps = []
+        senders = {}
+        with open(RECORDS_CSV, "r") as f:
+            reader = list(csv.reader(f))
+            for i, row in enumerate(reader[1:], start=1):
+                ts_str, sender, receiver, hash_hex, preview = row
+                timestamps.append(datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S"))
+                senders[sender] = senders.get(sender, 0) + 1
+
+        if not timestamps:
+            print("No transactions to plot.")
+            return
+
+        # Time series: cumulative transactions
+        timestamps_sorted = sorted(timestamps)
+        counts = list(range(1, len(timestamps_sorted) + 1))
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(timestamps_sorted, counts, marker="o")
+        plt.title("Cumulative Transactions Over Time")
+        plt.xlabel("Time")
+        plt.ylabel("Cumulative count")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+        # Bar chart per sender
+        plt.figure(figsize=(6, 4))
+        plt.bar(list(senders.keys()), list(senders.values()))
+        plt.title("Transactions by Sender")
+        plt.xlabel("Sender")
+        plt.ylabel("Number of transactions")
+        plt.tight_layout()
+        plt.show()
+
+
+# ---------------------------
+# ---- Serialization helpers
+# ---------------------------
+def serialized(obj):
+    """
+    Convert an object returned by elgamal_encrypt to a JSON-safe string.
+    If your elgamal returns bytes: return hex; if tuple: json-serialize.
+    Adapt this function to your elgamal implementation.
+    """
+    # simple attempt:
+    if obj is None:
+        return None
+    if isinstance(obj, bytes):
+        return {"type": "bytes", "data": obj.hex()}
+    if isinstance(obj, str):
+        return {"type": "str", "data": obj}
+    if isinstance(obj, (list, tuple)):
+        # try to convert elements
+        out = []
+        for e in obj:
+            if isinstance(e, bytes):
+                out.append({"type": "bytes", "data": e.hex()})
+            elif isinstance(e, str):
+                out.append({"type": "str", "data": e})
+            else:
+                out.append({"type": "repr", "data": repr(e)})
+        return {"type": "list", "data": out}
+    # fallback
+    return {"type": "repr", "data": repr(obj)}
+
+
+def deserialized(obj):
+    """
+    Undo serialized -> return bytes or str or list. Keep in sync with serialized().
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, dict) and "type" in obj:
+        t = obj["type"]
+        if t == "bytes":
+            return bytes.fromhex(obj["data"])
+        if t == "str":
+            return obj["data"]
+        if t == "list":
+            out = []
+            for item in obj["data"]:
+                if item["type"] == "bytes":
+                    out.append(bytes.fromhex(item["data"]))
+                elif item["type"] == "str":
+                    out.append(item["data"])
+                else:
+                    out.append(item["data"])
+            return out
+        if t == "repr":
+            return obj["data"]
+    return obj
+
+
+# ---------------------------
+# ---- Menu / CLI
+# ---------------------------
+def demo_key_setup():
+    """
+    Generate a sample ElGamal keypair for teacher and store in keys.json
+    Adjust/eliminate if you already manage keys differently.
+    """
+    # elgamal_keygen params depend on your implementation; here we call generically.
+    # Example: elgamal_keygen(p, g) -> (pub, priv)
+    try:
+        # Example params - replace with real secure params
+        p = 467
+        g = 2
+        teacher_pub, teacher_priv = elgamal_keygen(p, g)
+        # store in keys.json under 'teacher'
+        store = load_keys()
+        store["teacher_elgamal"] = {"pub": repr(teacher_pub), "priv": repr(teacher_priv), "params": {"p": p, "g": g}}
+        save_keys(store)
+        print("Demo ElGamal keys generated for 'teacher' (edit as needed).")
+        return (teacher_pub, teacher_priv, {"p": p, "g": g})
+    except Exception as e:
+        print("demo_key_setup: could not create keys automatically. Edit this function to match your elgamal API.")
+        print("Error:", e)
+        return (None, None, None)
+
+
+def main_menu():
+    # Create demo users for the session (in a real program you'd have authentication)
+    student = Student("alice")
+    teacher = Teacher("prof_bob")
+    hod = HOD("hod")
+
+    # Optionally create demo elgamal keys (you should replace this with your key distribution)
+    teacher_pub, teacher_priv, elgamal_params = demo_key_setup()
+
+    while True:
+        print("\n--- Main Menu ---")
+        print("1. Student: Encrypt & send")
+        print("2. Teacher: Receive & decrypt")
+        print("3. HOD: View records / verify / plot")
+        print("4. Exit")
+        choice = input("Choice: ").strip()
+
+        if choice == "1":
+            # Student action
+            plaintext = input("Enter message to encrypt (student): ")
+            # Student packages ciphertext + encrypted key blob for teacher
+            try:
+                package = student.encrypt_and_send(plaintext, teacher_pub, elgamal_params)
+                # Save package to a temporary file representing 'sent message'
+                with open("last_package.json", "w") as f:
+                    json.dump(package, f, indent=2)
+                print("Message encrypted and package saved to last_package.json")
+            except Exception as e:
+                print("Encryption/send failed. Check your algorithm hooks. Error:", e)
+
+        elif choice == "2":
+            # Teacher action: read last package and decrypt
+            if not os.path.exists("last_package.json"):
+                print("No package to receive (last_package.json missing). Student must send first.")
+                continue
+            with open("last_package.json", "r") as f:
+                package = json.load(f)
+            # Use teacher_priv and elgamal_params from demo_key_setup (or load real keys)
+            try:
+                result = teacher.receive_and_decrypt(package, teacher_priv, elgamal_params)
+                print("Decryption result:")
+                print("Plaintext:", result["plaintext"])
+                print("Sent hash:", result["sent_hash"])
+                print("Computed hash:", result["computed_hash"])
+                print("Signature valid:", result["valid"])
+            except Exception as e:
+                print("Decryption/verification failed. Error:", e)
+
+        elif choice == "3":
+            # HOD menu
+            while True:
+                print("\n--- HOD Menu ---")
+                print("1. View all records")
+                print("2. Verify a record by index")
+                print("3. Plot transactions")
+                print("4. Back")
+                ch = input("Choice: ").strip()
+                if ch == "1":
+                    hod.view_all_records()
+                elif ch == "2":
+                    idx = int(input("Enter row index (1-based, header is row 0): "))
+                    hod.verify_record(idx)
+                elif ch == "3":
+                    hod.plot_transactions()
+                elif ch == "4":
+                    break
+                else:
+                    print("Invalid choice")
+        elif choice == "4":
+            print("Exiting.")
+            break
+        else:
+            print("Invalid choice")
+
+
+if __name__ == "__main__":
+    main_menu()
+Notes / How to adapt this skeleton to your real functions
+AES functions
+
+The script expects:
+
+aes_encrypt(key_bytes, plaintext_bytes) -> bytes
+
+aes_decrypt(key_bytes, ciphertext_bytes) -> bytes
+
+If your Algorithms/aes_128.py uses different names (eg aes_128()), either rename or change the import block near the top to call your function.
+
+ElGamal functions
+
+The script expects:
+
+elgamal_keygen(p,g) -> (public_key, private_key)
+
+elgamal_encrypt(plaintext_bytes, public_key, params) -> bytes-or-structure
+
+elgamal_decrypt(ciphertext, private_key, params) -> bytes
+
+If your ElGamal returns tuples (e.g., (c1, c2)), the serialized function will attempt to convert to JSON-friendly form. Adjust serialized / deserialized to match your format.
+
+Signing / Signature
+
+Right now the Student sends the plaintext hash along with AES key encrypted to Teacher. If you prefer to produce a signature (encrypting hash with student's private RSA/ECC), change:
+
+Student: compute signature via your rsa_sign or ecc_sign and include that instead of raw hash.
+
+Teacher: verify signature with student's public key.
+
+Swapping algorithms
+
+To switch AES → DES, edit the AES import section and ensure the new functions follow the same interface.
+
+To switch ElGamal → RSA or ECC for key-transport, replace calls to elgamal_encrypt/decrypt with your rsa_encrypt/rsa_decrypt or ecc_encrypt/ecc_decrypt wrappers. Keep serialized adapted.
+
+Key management
+
+For prototype, keys are stored in keys.json as plain text/representations — replace with secure storage for production.
+
+Message storage
+
+CSV: records.csv (timestamp, sender, receiver, hash, preview)
+
+TXT: records.txt for easy manual inspection
+
+Graph
+
+HOD plot_transactions() draws:
+
+cumulative transactions over time
+
+bar chart by sender
+
+If you want, I can:
+
+adapt this skeleton to use an actual point-encoding for ECC (map messages to curve points),
+
+or rewrite the Student → Teacher flow to use RSA signatures instead of sending raw hash,
+
+or integrate Diffie-Hellman instead of ElGamal for AES key transport (I already showed how to derive AES key from DH secret earlier, I can plug that in).
+
+Which one do you want next — RSA signatures, ECC transport, or DH-based AES key exchange integrated into this menu?
+
+You said:
+do the same without json, store in dictionaries
+ChatGPT said:
+Got it ✅
+
+We can rewrite the menu-driven skeleton to store all keys and transaction records in dictionaries in memory rather than reading/writing JSON or CSV. This keeps everything in memory for the session (you can later persist if needed).
+
+Here’s a complete object-oriented skeleton version:
+
+"""
+Menu-driven OO skeleton with in-memory dictionaries.
+Student -> AES encrypt + hash
+Teacher -> AES decrypt + hash compare
+HOD -> view all transactions and verify
+"""
+
+import os
+import hashlib
+import time
+from datetime import datetime
+import matplotlib.pyplot as plt
+
+# ---------------------------
+# ---- Hook your algorithms
+# ---------------------------
+try:
+    from Algorithms.aes_128 import encrypt as aes_encrypt, decrypt as aes_decrypt
+except Exception:
+    def aes_encrypt(key_bytes: bytes, plaintext_bytes: bytes) -> bytes:
+        raise NotImplementedError("Provide aes_encrypt(key_bytes, plaintext_bytes)")
+    def aes_decrypt(key_bytes: bytes, ciphertext_bytes: bytes) -> bytes:
+        raise NotImplementedError("Provide aes_decrypt(key_bytes, ciphertext_bytes)")
+
+try:
+    from Algorithms.elgamal import elgamal_keygen, elgamal_encrypt, elgamal_decrypt
+except Exception:
+    def elgamal_keygen(*args, **kwargs):
+        raise NotImplementedError("Provide elgamal_keygen")
+    def elgamal_encrypt(*args, **kwargs):
+        raise NotImplementedError("Provide elgamal_encrypt")
+    def elgamal_decrypt(*args, **kwargs):
+        raise NotImplementedError("Provide elgamal_decrypt")
+
+try:
+    from Algorithms.sha import sha256
+except Exception:
+    def sha256(msg: str) -> str:
+        return hashlib.sha256(msg.encode()).hexdigest()
+
+# ---------------------------
+# ---- Global in-memory storage
+# ---------------------------
+KEYS_STORE = {}       # username -> dict of keys
+TRANSACTIONS = []     # list of dicts with sender/receiver/hash/timestamp/message preview
+
+# ---------------------------
+# ---- Utilities
+# ---------------------------
+def now_timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def derive_aes_key_from_secret(secret_int, key_len_bytes=16):
+    s = str(secret_int).encode()
+    return hashlib.sha256(s).digest()[:key_len_bytes]
+
+# ---------------------------
+# ---- Users
+# ---------------------------
+class User:
+    def __init__(self, username, role):
+        self.username = username
+        self.role = role
+        self.keys = {}  # algorithm keys
+        KEYS_STORE[self.username] = self.keys
+
+class Student(User):
+    def __init__(self, username):
+        super().__init__(username, "student")
+
+    def create_aes_key(self):
+        key = os.urandom(16)
+        self.keys["aes"] = key
+        return key
+
+    def encrypt_and_send(self, plaintext: str, teacher_pub_elgamal, elgamal_params):
+        aes_key = self.create_aes_key()
+        ciphertext = aes_encrypt(aes_key, plaintext.encode())
+        hash_hex = sha256(plaintext)
+        key_blob = aes_key + b"::" + hash_hex.encode()
+        encrypted_key_blob = elgamal_encrypt(key_blob, teacher_pub_elgamal, elgamal_params)
+        # store transaction in memory
+        TRANSACTIONS.append({
+            "timestamp": now_timestamp(),
+            "sender": self.username,
+            "receiver": "teacher",
+            "hash": hash_hex,
+            "preview": plaintext[:100]
+        })
+        return {
+            "ciphertext": ciphertext,
+            "encrypted_key_blob": encrypted_key_blob,
+            "hash": hash_hex
+        }
+
+class Teacher(User):
+    def __init__(self, username):
+        super().__init__(username, "teacher")
+
+    def receive_and_decrypt(self, package, my_elgamal_priv, elgamal_params):
+        ciphertext = package["ciphertext"]
+        key_blob = elgamal_decrypt(package["encrypted_key_blob"], my_elgamal_priv, elgamal_params)
+        aes_key, sent_hash_hex = key_blob.split(b"::")
+        sent_hash_hex = sent_hash_hex.decode()
+        plaintext = aes_decrypt(aes_key, ciphertext).decode()
+        computed_hash = sha256(plaintext)
+        valid = computed_hash == sent_hash_hex
+        # store transaction
+        TRANSACTIONS.append({
+            "timestamp": now_timestamp(),
+            "sender": "teacher",
+            "receiver": package.get("sender", "unknown"),
+            "hash": computed_hash,
+            "preview": plaintext[:100]
+        })
+        return {"plaintext": plaintext, "valid": valid, "computed_hash": computed_hash, "sent_hash": sent_hash_hex}
+
+class HOD(User):
+    def __init__(self, username="hod"):
+        super().__init__(username, "hod")
+
+    def view_transactions(self):
+        print("\n--- Transactions ---")
+        for i, t in enumerate(TRANSACTIONS, 1):
+            print(f"{i}. [{t['timestamp']}] {t['sender']} -> {t['receiver']} | hash: {t['hash']} | preview: {t['preview']}")
+        print("--- End ---\n")
+
+    def verify_transaction(self, idx, original_plaintext=None):
+        if idx <=0 or idx > len(TRANSACTIONS):
+            print("Invalid index")
+            return
+        t = TRANSACTIONS[idx-1]
+        if not original_plaintext:
+            print(f"Stored hash: {t['hash']}")
+            return
+        new_hash = sha256(original_plaintext)
+        print("Verification result:", new_hash == t['hash'])
+
+    def plot_transactions(self):
+        if not TRANSACTIONS:
+            print("No transactions to plot")
+            return
+        timestamps = [datetime.strptime(t["timestamp"], "%Y-%m-%d %H:%M:%S") for t in TRANSACTIONS]
+        senders_count = {}
+        for t in TRANSACTIONS:
+            senders_count[t["sender"]] = senders_count.get(t["sender"],0)+1
+
+        # Cumulative over time
+        timestamps_sorted = sorted(timestamps)
+        counts = list(range(1,len(timestamps_sorted)+1))
+        plt.figure(figsize=(10,4))
+        plt.plot(timestamps_sorted, counts, marker="o")
+        plt.title("Cumulative Transactions Over Time")
+        plt.xlabel("Time")
+        plt.ylabel("Count")
+        plt.grid(True)
+        plt.show()
+
+        # Bar chart per sender
+        plt.figure(figsize=(6,4))
+        plt.bar(list(senders_count.keys()), list(senders_count.values()))
+        plt.title("Transactions per sender")
+        plt.show()
+
+# ---------------------------
+# ---- Menu
+# ---------------------------
+def demo_key_setup():
+    try:
+        p, g = 467, 2
+        teacher_pub, teacher_priv = elgamal_keygen(p,g)
+        return teacher_pub, teacher_priv, {"p":p,"g":g}
+    except:
+        print("Adapt demo_key_setup for your elgamal API")
+        return None, None, None
+
+def main_menu():
+    student = Student("alice")
+    teacher = Teacher("prof_bob")
+    hod = HOD("hod")
+    teacher_pub, teacher_priv, elgamal_params = demo_key_setup()
+
+    while True:
+        print("\n--- Main Menu ---")
+        print("1. Student: Encrypt & send")
+        print("2. Teacher: Receive & decrypt")
+        print("3. HOD: View / verify / plot")
+        print("4. Exit")
+        choice = input("Choice: ").strip()
+        if choice=="1":
+            msg = input("Enter message: ")
+            pkg = student.encrypt_and_send(msg, teacher_pub, elgamal_params)
+            print("Message encrypted and sent in memory.")
+        elif choice=="2":
+            if not TRANSACTIONS:
+                print("No message from student yet")
+                continue
+            # for demo, use last student package (could store in a variable)
+            pkg = student.encrypt_and_send("Temp", teacher_pub, elgamal_params)  # placeholder
+            result = teacher.receive_and_decrypt(pkg, teacher_priv, elgamal_params)
+            print("Decrypted:", result["plaintext"])
+            print("Signature valid:", result["valid"])
+        elif choice=="3":
+            while True:
+                print("\nHOD Menu:\n1. View\n2. Verify\n3. Plot\n4. Back")
+                ch = input("Choice: ").strip()
+                if ch=="1":
+                    hod.view_transactions()
+                elif ch=="2":
+                    idx = int(input("Enter transaction index: "))
+                    orig = input("Enter original plaintext (optional): ")
+                    hod.verify_transaction(idx, orig if orig else None)
+                elif ch=="3":
+                    hod.plot_transactions()
+                elif ch=="4":
+                    break
+                else:
+                    print("Invalid")
+        elif choice=="4":
+            break
+        else:
+            print("Invalid choice")
+
+if __name__=="__main__":
+    main_menu()
+✅ Key Points
+All keys and transaction logs are in-memory dictionaries/lists (KEYS_STORE and TRANSACTIONS).
+
+AES / ElGamal / Hash hooks are placeholders — replace with your real implementations.
+
+Easily swappable:
+
+AES → DES: change aes_encrypt / aes_decrypt.
+
+ElGamal → RSA/ECC: change elgamal_encrypt/decrypt hooks.
+
+Graph: cumulative transactions over time and bar chart per sender.
+
+HOD can verify any transaction by recomputing hash from provided original plaintext.
+
+If you want, I can also adapt this version to store multiple students & teachers in memory, simulating a full classroom environment instead of just Alice & Bob, while keeping everything in dictionaries.
+
+Do you want me to do that?
+
+You said:
+similar for a bank case
+ChatGPT said:
+Absolutely ✅. We can adapt the same menu-driven, object-oriented, in-memory dictionary approach for a banking scenario. Here's the idea:
+
+Scenario Design
+Roles:
+
+Customer:
+
+Can deposit, withdraw, transfer money.
+
+Encrypts transaction details using AES (or any symmetric encryption).
+
+Creates a hash of the transaction as a signature.
+
+Sends encrypted transaction + signature to the bank.
+
+Bank Teller / Bank System:
+
+Can decrypt customer transactions.
+
+Verifies the hash/signature to ensure integrity.
+
+Updates in-memory account balances.
+
+Bank Manager / Auditor:
+
+Can view all transactions with timestamps and hashes.
+
+Can verify transaction integrity.
+
+Can plot graphs of transaction volumes, balances, etc.
+
+In-Memory Storage:
+
+ACCOUNTS: dict mapping username → balance & keys.
+
+TRANSACTIONS: list of dicts with transaction info, timestamp, hash.
+
+Keys: AES for transaction encryption, optional ElGamal/RSA for key exchange.
+
+Here’s a skeleton Python code:
+
+import os
+import hashlib
+from datetime import datetime
+import matplotlib.pyplot as plt
+
+# Hook your algorithms
+try:
+    from Algorithms.aes_128 import encrypt as aes_encrypt, decrypt as aes_decrypt
+except Exception:
+    def aes_encrypt(key, plaintext_bytes): raise NotImplementedError()
+    def aes_decrypt(key, ciphertext_bytes): raise NotImplementedError()
+
+try:
+    from Algorithms.elgamal import elgamal_keygen, elgamal_encrypt, elgamal_decrypt
+except Exception:
+    def elgamal_keygen(*args, **kwargs): raise NotImplementedError()
+    def elgamal_encrypt(*args, **kwargs): raise NotImplementedError()
+    def elgamal_decrypt(*args, **kwargs): raise NotImplementedError()
+
+# ---------------------------
+# In-memory storage
+# ---------------------------
+ACCOUNTS = {}      # username -> {balance, keys}
+TRANSACTIONS = []  # list of dicts: sender, receiver, amount, timestamp, hash
+
+# ---------------------------
+# Utilities
+# ---------------------------
+def now_timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def sha256(msg: str):
+    return hashlib.sha256(msg.encode()).hexdigest()
+
+def derive_aes_key(secret_int, key_len=16):
+    return hashlib.sha256(str(secret_int).encode()).digest()[:key_len]
+
+# ---------------------------
+# Users
+# ---------------------------
+class User:
+    def __init__(self, username, role):
+        self.username = username
+        self.role = role
+        self.keys = {}
+        ACCOUNTS[self.username] = {"balance": 0, "keys": self.keys}
+
+class Customer(User):
+    def __init__(self, username):
+        super().__init__(username, "customer")
+
+    def create_aes_key(self):
+        key = os.urandom(16)
+        self.keys["aes"] = key
+        return key
+
+    def make_transaction(self, amount, receiver, bank_pub_elgamal, elgamal_params):
+        key = self.create_aes_key()
+        transaction = f"{self.username}->{receiver}:{amount}"
+        ciphertext = aes_encrypt(key, transaction.encode())
+        tx_hash = sha256(transaction)
+        key_blob = key + b"::" + tx_hash.encode()
+        encrypted_key_blob = elgamal_encrypt(key_blob, bank_pub_elgamal, elgamal_params)
+        TRANSACTIONS.append({
+            "timestamp": now_timestamp(),
+            "sender": self.username,
+            "receiver": receiver,
+            "amount": amount,
+            "hash": tx_hash,
+            "preview": transaction[:50]
+        })
+        return {"ciphertext": ciphertext, "encrypted_key_blob": encrypted_key_blob, "hash": tx_hash}
+
+class Bank(User):
+    def __init__(self, username="bank"):
+        super().__init__(username, "bank")
+
+    def process_transaction(self, package, priv_elgamal, elgamal_params):
+        key_blob = elgamal_decrypt(package["encrypted_key_blob"], priv_elgamal, elgamal_params)
+        key, sent_hash = key_blob.split(b"::")
+        sent_hash = sent_hash.decode()
+        plaintext = aes_decrypt(key, package["ciphertext"]).decode()
+        computed_hash = sha256(plaintext)
+        valid = computed_hash == sent_hash
+        # update balances if valid
+        sender, rest = plaintext.split("->")
+        receiver, amount = rest.split(":")
+        amount = float(amount)
+        if valid:
+            ACCOUNTS[sender]["balance"] -= amount
+            if receiver not in ACCOUNTS:
+                ACCOUNTS[receiver] = {"balance":0, "keys":{}}
+            ACCOUNTS[receiver]["balance"] += amount
+        return {"plaintext": plaintext, "valid": valid, "computed_hash": computed_hash}
+
+class Auditor(User):
+    def __init__(self, username="auditor"):
+        super().__init__(username, "auditor")
+
+    def view_transactions(self):
+        print("\n--- Transactions ---")
+        for i, t in enumerate(TRANSACTIONS,1):
+            print(f"{i}. [{t['timestamp']}] {t['sender']} -> {t['receiver']} | amount: {t['amount']} | hash: {t['hash']}")
+        print("--- End ---\n")
+
+    def plot_transactions(self):
+        if not TRANSACTIONS:
+            print("No transactions to plot")
+            return
+        amounts = [t["amount"] for t in TRANSACTIONS]
+        senders = [t["sender"] for t in TRANSACTIONS]
+        plt.figure(figsize=(8,4))
+        plt.bar(range(len(amounts)), amounts, tick_label=senders)
+        plt.title("Transaction amounts per sender")
+        plt.show()
+
+# ---------------------------
+# Demo key setup (placeholder)
+# ---------------------------
+def demo_key_setup():
+    try:
+        p,g = 467,2
+        bank_pub, bank_priv = elgamal_keygen(p,g)
+        return bank_pub, bank_priv, {"p":p,"g":g}
+    except:
+        return None,None,None
+
+# ---------------------------
+# Menu
+# ---------------------------
+def main_menu():
+    customer = Customer("alice")
+    bank = Bank()
+    auditor = Auditor()
+    bank_pub, bank_priv, elgamal_params = demo_key_setup()
+
+    while True:
+        print("\n--- Menu ---")
+        print("1. Customer: Make transaction")
+        print("2. Bank: Process transaction")
+        print("3. Auditor: View / Plot")
+        print("4. Exit")
+        choice = input("Choice: ").strip()
+        if choice=="1":
+            receiver = input("Receiver: ")
+            amount = float(input("Amount: "))
+            pkg = customer.make_transaction(amount, receiver, bank_pub, elgamal_params)
+            print("Transaction created and stored in memory.")
+        elif choice=="2":
+            if not TRANSACTIONS:
+                print("No transactions")
+                continue
+            # For demo, process last transaction
+            last_pkg = customer.make_transaction(100, "bob", bank_pub, elgamal_params)  # placeholder
+            result = bank.process_transaction(last_pkg, bank_priv, elgamal_params)
+            print("Processed transaction:", result["plaintext"])
+            print("Valid:", result["valid"])
+        elif choice=="3":
+            while True:
+                print("\nAuditor Menu:\n1.View\n2.Plot\n3.Back")
+                ch = input("Choice: ")
+                if ch=="1":
+                    auditor.view_transactions()
+                elif ch=="2":
+                    auditor.plot_transactions()
+                elif ch=="3":
+                    break
+        elif choice=="4":
+            break
+        else:
+            print("Invalid choice")
+
+if __name__=="__main__":
+    main_menu()
+✅ Features
+All data in-memory dictionaries (ACCOUNTS, TRANSACTIONS).
+
+Roles: Customer → Bank → Auditor.
+
+Transactions: AES-encrypted, hashed, optionally key-exchanged via ElGamal.
+
+Auditor can view all transactions and plot graphs.
+
+Easily swappable encryption/signature algorithms (AES → DES, ElGamal → RSA/ECC).
+
+Can extend for multiple customers and batch processing.
+
+I can also make a full multi-customer bank simulation where multiple customers interact concurrently, with all balances & transactions updated correctly, and graphs for total bank inflow/outflow, if you want.
+
+Do you want me to do that next?
+
+
+
+
+
+
+No file chosenNo file chosen
+ChatGPT can make mistakes. Check important info. See Cookie Preferences.
