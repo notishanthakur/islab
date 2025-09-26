@@ -2774,9 +2774,366 @@ receive_message(receiver, sender, ciphertext, signature) verifies automatically
 
 Do you want me to do that?
 
+You said:
+same can be done to get des?
+ChatGPT said:
+Absolutely! ✅
+
+The workflow doesn’t change at all. The only difference is that instead of using AES for encryption/decryption, you use DES. The Diffie-Hellman (DH) key exchange is still used to securely derive a shared key, and the rest (hash/signature, sending/verification) stays the same.
+
+1️⃣ Replace AES with DES
+from Crypto.Cipher import DES
+import hashlib
+
+# Example: derive 8-byte DES key from DH shared secret
+def derive_des_key(shared_secret):
+    # DES requires 8 bytes key
+    key = hashlib.sha256(str(shared_secret).encode()).digest()[:8]
+    return key
+
+def des_encrypt(key, plaintext_bytes):
+    # DES works with 8-byte blocks
+    des = DES.new(key, DES.MODE_ECB)
+    # pad plaintext to 8-byte blocks
+    pad_len = 8 - len(plaintext_bytes) % 8
+    padded = plaintext_bytes + bytes([pad_len]*pad_len)
+    ciphertext = des.encrypt(padded)
+    return ciphertext
+
+def des_decrypt(key, ciphertext_bytes):
+    des = DES.new(key, DES.MODE_ECB)
+    padded = des.decrypt(ciphertext_bytes)
+    # remove padding
+    pad_len = padded[-1]
+    return padded[:-pad_len]
+2️⃣ Use DH to derive DES key
+p = 467
+g = 2
+
+# Alice and Bob DH keys
+alice_priv, alice_pub = dh_keygen(p, g)
+bob_priv, bob_pub = dh_keygen(p, g)
+
+alice_shared = dh_shared_secret(bob_pub, alice_priv, p)
+bob_shared = dh_shared_secret(alice_pub, bob_priv, p)
+
+# Derive DES key
+alice_des_key = derive_des_key(alice_shared)
+bob_des_key = derive_des_key(bob_shared)
+assert alice_des_key == bob_des_key
+3️⃣ Encrypt, hash, send, and verify
+plaintext = b"Hello Bob"
+
+# Encrypt with DES
+ciphertext = des_encrypt(alice_des_key, plaintext)
+
+# Hash/signature
+signature = hashlib.sha256(plaintext).hexdigest()
+
+# --- On Bob's side ---
+decrypted = des_decrypt(bob_des_key, ciphertext)
+valid = hashlib.sha256(decrypted).hexdigest() == signature
+
+print("Decrypted:", decrypted)
+print("Signature valid:", valid)
+✅ Key Notes
+All steps identical to AES workflow:
+
+DH key exchange → shared secret
+
+Key derivation (now 8 bytes for DES)
+
+Encryption & decryption
+
+Hash/signature verification
+
+Swap AES with DES or any symmetric cipher easily: just replace aes_encrypt/aes_decrypt functions with des_encrypt/des_decrypt.
+
+If you want, I can rewrite the full Student/Teacher/HOD menu skeleton to support either AES or DES dynamically, so you can switch with a single line in the menu.
+
+Do you want me to do that?
+
+You said:
+give codes for all aes, des
+ChatGPT said:
+Absolutely! Here's a ready-to-use Python module that includes AES (128-bit) and DES encryption/decryption functions with proper padding. You can drop this in your project and swap AES ↔ DES easily.
+
+# symmetric.py
+from Crypto.Cipher import AES, DES
+from Crypto.Random import get_random_bytes
+
+# -------------------------------
+# AES 128-bit
+# -------------------------------
+def aes_encrypt(key: bytes, plaintext_bytes: bytes) -> bytes:
+    """
+    Encrypt plaintext with AES-128 in ECB mode (example)
+    key: 16 bytes
+    plaintext_bytes: bytes
+    """
+    # pad to 16-byte blocks
+    pad_len = 16 - len(plaintext_bytes) % 16
+    padded = plaintext_bytes + bytes([pad_len]*pad_len)
+    cipher = AES.new(key, AES.MODE_ECB)
+    ciphertext = cipher.encrypt(padded)
+    return ciphertext
+
+def aes_decrypt(key: bytes, ciphertext_bytes: bytes) -> bytes:
+    cipher = AES.new(key, AES.MODE_ECB)
+    padded = cipher.decrypt(ciphertext_bytes)
+    pad_len = padded[-1]
+    return padded[:-pad_len]
+
+def aes_generate_key() -> bytes:
+    """Generate random 16-byte AES key"""
+    return get_random_bytes(16)
+
+# -------------------------------
+# DES
+# -------------------------------
+def des_encrypt(key: bytes, plaintext_bytes: bytes) -> bytes:
+    """
+    Encrypt plaintext with DES in ECB mode
+    key: 8 bytes
+    plaintext_bytes: bytes
+    """
+    pad_len = 8 - len(plaintext_bytes) % 8
+    padded = plaintext_bytes + bytes([pad_len]*pad_len)
+    cipher = DES.new(key, DES.MODE_ECB)
+    ciphertext = cipher.encrypt(padded)
+    return ciphertext
+
+def des_decrypt(key: bytes, ciphertext_bytes: bytes) -> bytes:
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded = cipher.decrypt(ciphertext_bytes)
+    pad_len = padded[-1]
+    return padded[:-pad_len]
+
+def des_generate_key() -> bytes:
+    """Generate random 8-byte DES key"""
+    from Crypto.Random import get_random_bytes
+    return get_random_bytes(8)
+
+# -------------------------------
+# Example usage
+# -------------------------------
+if __name__=="__main__":
+    # AES
+    aes_key = aes_generate_key()
+    plaintext = b"Hello AES World"
+    ct = aes_encrypt(aes_key, plaintext)
+    pt = aes_decrypt(aes_key, ct)
+    print("AES plaintext:", pt)
+
+    # DES
+    des_key = des_generate_key()
+    plaintext = b"Hello DES"
+    ct = des_encrypt(des_key, plaintext)
+    pt = des_decrypt(des_key, ct)
+    print("DES plaintext:", pt)
+✅ Key Features
+AES-128:
+
+Key = 16 bytes
+
+ECB mode (for demo; can be changed to CBC with IV)
+
+Automatic PKCS#7-like padding
+
+DES:
+
+Key = 8 bytes
+
+ECB mode
+
+Automatic padding
+
+Swap easily in your menu-driven project:
+
+from symmetric import aes_encrypt, aes_decrypt, des_encrypt, des_decrypt
+Use aes_encrypt / aes_decrypt for AES
+
+Use des_encrypt / des_decrypt for DES
+
+I can also extend this module to support AES-256, Triple DES, and automatic mode switching with a single algorithm="AES" or "DES" argument for your menu-driven system.
+
+Do you want me to do that next?
+
+You said:
+give aes 128,256,512 and des all variations
+ChatGPT said:
+Absolutely! Here's a comprehensive Python module that includes AES-128, AES-256, AES-512 (simulated), and DES (single DES and Triple DES) encryption/decryption functions with proper padding. You can swap algorithms easily in your menu-driven system.
+
+Note: AES-512 does not exist in the official standard; we can simulate it by hashing a key to 64 bytes and using AES-256 block operations twice or as a key expansion. For simplicity, we'll provide a hash-derived 64-byte key split for AES-256 twice.
+
+# symmetric_all.py
+from Crypto.Cipher import AES, DES, DES3
+from Crypto.Random import get_random_bytes
+import hashlib
+
+# -------------------------------
+# AES Helpers
+# -------------------------------
+def _pad(data: bytes, block_size: int) -> bytes:
+    pad_len = block_size - len(data) % block_size
+    return data + bytes([pad_len]*pad_len)
+
+def _unpad(data: bytes) -> bytes:
+    pad_len = data[-1]
+    return data[:-pad_len]
+
+# -------------------------------
+# AES 128
+# -------------------------------
+def aes_128_encrypt(key: bytes, plaintext: bytes) -> bytes:
+    key = key[:16]  # enforce 16 bytes
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(_pad(plaintext, 16))
+
+def aes_128_decrypt(key: bytes, ciphertext: bytes) -> bytes:
+    key = key[:16]
+    cipher = AES.new(key, AES.MODE_ECB)
+    return _unpad(cipher.decrypt(ciphertext))
+
+def aes_128_generate_key() -> bytes:
+    return get_random_bytes(16)
+
+# -------------------------------
+# AES 256
+# -------------------------------
+def aes_256_encrypt(key: bytes, plaintext: bytes) -> bytes:
+    key = key[:32]  # enforce 32 bytes
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(_pad(plaintext, 16))
+
+def aes_256_decrypt(key: bytes, ciphertext: bytes) -> bytes:
+    key = key[:32]
+    cipher = AES.new(key, AES.MODE_ECB)
+    return _unpad(cipher.decrypt(ciphertext))
+
+def aes_256_generate_key() -> bytes:
+    return get_random_bytes(32)
+
+# -------------------------------
+# AES 512 (simulated)
+# -------------------------------
+def aes_512_encrypt(key: bytes, plaintext: bytes) -> bytes:
+    # derive 64-byte key
+    key_hash = hashlib.sha512(key).digest()
+    k1 = key_hash[:32]
+    k2 = key_hash[32:]
+    # encrypt twice
+    intermediate = aes_256_encrypt(k1, plaintext)
+    return aes_256_encrypt(k2, intermediate)
+
+def aes_512_decrypt(key: bytes, ciphertext: bytes) -> bytes:
+    key_hash = hashlib.sha512(key).digest()
+    k1 = key_hash[:32]
+    k2 = key_hash[32:]
+    intermediate = aes_256_decrypt(k2, ciphertext)
+    return aes_256_decrypt(k1, intermediate)
+
+def aes_512_generate_key() -> bytes:
+    return get_random_bytes(64)
+
+# -------------------------------
+# DES
+# -------------------------------
+def des_encrypt(key: bytes, plaintext: bytes) -> bytes:
+    key = key[:8]
+    cipher = DES.new(key, DES.MODE_ECB)
+    return cipher.encrypt(_pad(plaintext, 8))
+
+def des_decrypt(key: bytes, ciphertext: bytes) -> bytes:
+    key = key[:8]
+    cipher = DES.new(key, DES.MODE_ECB)
+    return _unpad(cipher.decrypt(ciphertext))
+
+def des_generate_key() -> bytes:
+    return get_random_bytes(8)
+
+# -------------------------------
+# Triple DES (3DES)
+# -------------------------------
+def triple_des_encrypt(key: bytes, plaintext: bytes) -> bytes:
+    # key must be 16 or 24 bytes
+    key = DES3.adjust_key_parity(key[:24])
+    cipher = DES3.new(key, DES3.MODE_ECB)
+    return cipher.encrypt(_pad(plaintext, 8))
+
+def triple_des_decrypt(key: bytes, ciphertext: bytes) -> bytes:
+    key = DES3.adjust_key_parity(key[:24])
+    cipher = DES3.new(key, DES3.MODE_ECB)
+    return _unpad(cipher.decrypt(ciphertext))
+
+def triple_des_generate_key() -> bytes:
+    return DES3.adjust_key_parity(get_random_bytes(24))
+
+# -------------------------------
+# Demo usage
+# -------------------------------
+if __name__=="__main__":
+    data = b"Hello Encryption World!"
+
+    # AES-128
+    k128 = aes_128_generate_key()
+    ct128 = aes_128_encrypt(k128, data)
+    pt128 = aes_128_decrypt(k128, ct128)
+    print("AES-128:", pt128)
+
+    # AES-256
+    k256 = aes_256_generate_key()
+    ct256 = aes_256_encrypt(k256, data)
+    pt256 = aes_256_decrypt(k256, ct256)
+    print("AES-256:", pt256)
+
+    # AES-512 (simulated)
+    k512 = aes_512_generate_key()
+    ct512 = aes_512_encrypt(k512, data)
+    pt512 = aes_512_decrypt(k512, ct512)
+    print("AES-512 (sim):", pt512)
+
+    # DES
+    kdes = des_generate_key()
+    ctdes = des_encrypt(kdes, data)
+    ptdes = des_decrypt(kdes, ctdes)
+    print("DES:", ptdes)
+
+    # Triple DES
+    k3des = triple_des_generate_key()
+    ct3des = triple_des_encrypt(k3des, data)
+    pt3des = triple_des_decrypt(k3des, ct3des)
+    print("3DES:", pt3des)
+✅ Features
+AES 128 / 256 / 512 (simulated)
+
+DES / Triple DES
+
+Automatic padding/unpadding
+
+ECB mode for simplicity (can be changed to CBC/GCM with IV easily)
+
+Key generation functions included for all algorithms
+
+You can now swap your menu-driven program like:
+
+from symmetric_all import aes_128_encrypt, aes_128_decrypt
+from symmetric_all import des_encrypt, des_decrypt
+Just replace the encrypt/decrypt function names.
+
+I can also extend this module to include dynamic selection like:
+
+encrypt(data, key, algorithm="AES256")
+decrypt(data, key, algorithm="DES")
+so your menu system can select any cipher dynamically.
+
+Do you want me to do that?
+
+
 
 
 
 
 No file chosenNo file chosen
 ChatGPT can make mistakes. Check important info. See Cookie Preferences.
+ChatGPT says: Absolutely! Here's a **comprehensive Python module** that includes **AES-128, AES-256, AES-512 (simulated), and DES (single DES and Triple DES)** encryption/decryption functions with proper padding. You can swap algorithms easily in your menu-driven system. > **Note:** AES-512 does not exist in the official standard; we can simulate it by hashing a key to 64 bytes and using AES-256 block operations twice or as a key expansion. For simplicity, we'll provide a **hash-derived 64-byte key split for AES-256 twice**. --- ```python # symmetric_all.py from Crypto.Cipher import AES, DES, DES3 from Crypto.Random import get_random_bytes import hashlib # ------------------------------- # AES Helpers # ------------------------------- def _pad(data: bytes, block_size: int) -> bytes: pad_len = block_size - len(data) % block_size return data + bytes([pad_len]*pad_len) def _unpad(data: bytes) -> bytes: pad_len = data[-1] return data[:-pad_len] # ------------------------------- # AES 128 # ------------------------------- def aes_128_encrypt(key: bytes, plaintext: bytes) -> bytes: key = key[:16] # enforce 16 bytes cipher = AES.new(key, AES.MODE_ECB) return cipher.encrypt(_pad(plaintext, 16)) def aes_128_decrypt(key: bytes, ciphertext: bytes) -> bytes: key = key[:16] cipher = AES.new(key, AES.MODE_ECB) return _unpad(cipher.decrypt(ciphertext)) def aes_128_generate_key() -> bytes: return get_random_bytes(16) # ------------------------------- # AES 256 # ------------------------------- def aes_256_encrypt(key: bytes, plaintext: bytes) -> bytes: key = key[:32] # enforce 32 bytes cipher = AES.new(key, AES.MODE_ECB) return cipher.encrypt(_pad(plaintext, 16)) def aes_256_decrypt(key: bytes, ciphertext: bytes) -> bytes: key = key[:32] cipher = AES.new(key, AES.MODE_ECB) return _unpad(cipher.decrypt(ciphertext)) def aes_256_generate_key() -> bytes: return get_random_bytes(32) # ------------------------------- # AES 512 (simulated) # ------------------------------- def aes_512_encrypt(key: bytes, plaintext: bytes) -> bytes: # derive 64-byte key key_hash = hashlib.sha512(key).digest() k1 = key_hash[:32] k2 = key_hash[32:] # encrypt twice intermediate = aes_256_encrypt(k1, plaintext) return aes_256_encrypt(k2, intermediate) def aes_512_decrypt(key: bytes, ciphertext: bytes) -> bytes: key_hash = hashlib.sha512(key).digest() k1 = key_hash[:32] k2 = key_hash[32:] intermediate = aes_256_decrypt(k2, ciphertext) return aes_256_decrypt(k1, intermediate) def aes_512_generate_key() -> bytes: return get_random_bytes(64) # ------------------------------- # DES # ------------------------------- def des_encrypt(key: bytes, plaintext: bytes) -> bytes: key = key[:8] cipher = DES.new(key, DES.MODE_ECB) return cipher.encrypt(_pad(plaintext, 8)) def des_decrypt(key: bytes, ciphertext: bytes) -> bytes: key = key[:8] cipher = DES.new(key, DES.MODE_ECB) return _unpad(cipher.decrypt(ciphertext)) def des_generate_key() -> bytes: return get_random_bytes(8) # ------------------------------- # Triple DES (3DES) # ------------------------------- def triple_des_encrypt(key: bytes, plaintext: bytes) -> bytes: # key must be 16 or 24 bytes key = DES3.adjust_key_parity(key[:24]) cipher = DES3.new(key, DES3.MODE_ECB) return cipher.encrypt(_pad(plaintext, 8)) def triple_des_decrypt(key: bytes, ciphertext: bytes) -> bytes: key = DES3.adjust_key_parity(key[:24]) cipher = DES3.new(key, DES3.MODE_ECB) return _unpad(cipher.decrypt(ciphertext)) def triple_des_generate_key() -> bytes: return DES3.adjust_key_parity(get_random_bytes(24)) # ------------------------------- # Demo usage # ------------------------------- if __name__=="__main__": data = b"Hello Encryption World!" # AES-128 k128 = aes_128_generate_key() ct128 = aes_128_encrypt(k128, data) pt128 = aes_128_decrypt(k128, ct128) print("AES-128:", pt128) # AES-256 k256 = aes_256_generate_key() ct256 = aes_256_encrypt(k256, data) pt256 = aes_256_decrypt(k256, ct256) print("AES-256:", pt256) # AES-512 (simulated) k512 = aes_512_generate_key() ct512 = aes_512_encrypt(k512, data) pt512 = aes_512_decrypt(k512, ct512) print("AES-512 (sim):", pt512) # DES kdes = des_generate_key() ctdes = des_encrypt(kdes, data) ptdes = des_decrypt(kdes, ctdes) print("DES:", ptdes) # Triple DES k3des = triple_des_generate_key() ct3des = triple_des_encrypt(k3des, data) pt3des = triple_des_decrypt(k3des, ct3des) print("3DES:", pt3des) ``` --- ### ✅ Features 1. **AES 128 / 256 / 512 (simulated)** 2. **DES / Triple DES** 3. **Automatic padding/unpadding** 4. **ECB mode for simplicity** (can be changed to CBC/GCM with IV easily) 5. **Key generation functions** included for all algorithms --- You can now **swap your menu-driven program** like: ```python from symmetric_all import aes_128_encrypt, aes_128_decrypt from symmetric_all import des_encrypt, des_decrypt ``` - Just replace the encrypt/decrypt function names. --- I can also **extend this module** to include **dynamic selection** like: ```python encrypt(data, key, algorithm="AES256") decrypt(data, key, algorithm="DES") ``` so your menu system can select any cipher dynamically. Do you want me to do that?
